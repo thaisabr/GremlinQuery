@@ -44,11 +44,11 @@ class GremlinQuery {
 			MergeCommit mc = new MergeCommit()
 			mc.sha = sha
 			
-			/*String[] parents = this.getParents(sha)
-			mc.parent1 = parents[0]
-			mc.parent2 = parents[1]
+			String[] parents = this.getParentsSha(sha)
+			mc.parent1 = parents.getAt(0)
+			mc.parent2 = parents.getAt(1)
 			
-			mc.parentsCommonAncestor = this.getParentsCommonAncestor()*/
+			//mc.parentsCommonAncestor = this.getParentsCommonAncestor()*/
 			
 			this.setMergeCommit(mc)
 			
@@ -94,12 +94,43 @@ class GremlinQuery {
 		return sha
 	
 	}
-	public void getParents(){
+	
+	public ArrayList<String> getParentsSha(String shaSon){
 		
+		def commit = this.graph.idx("commit-idx").get("hash", shaSon).first()
+		def parentsTemp = commit.outE('COMMIT_PARENT').sort{it.date}
+		ArrayList<String> parentsSha = new ArrayList<String>()
 		
+		for(parent in parentsTemp){
+			
+			
+			String id = this.auxGetParentsID(parent.toString())
+			
+			def parentCommit = this.graph.v(id).map
+			
+			for(p in parentCommit){
+				
+				parentsSha.add(this.auxGetSha(p.toString()))
+			}
+			
+			
+		}
 		
+		return parentsSha
 	}
 	
+
+	private String auxGetParentsID(String parent){
+		
+		String delims = "[>]"
+		String[] tokens = parent.toString().split(delims)
+		String idTemp = tokens[1]
+		
+		String id = idTemp.substring(0, (idTemp.size() - 1))
+		
+		return id
+		
+	}
 	public void getParentsCommonAncestor(){
 		
 	}
@@ -107,30 +138,46 @@ class GremlinQuery {
 	
 	
 	public static void main (String[] args){
-		//def g = new GremlinQuery();
 		
-		/*Gremlin.load()
-		
-		Graph g = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
-		def results = g.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
-		
-		String delims = "[,]"
-		
-			for ( m in results) {
-				
-				String commit = m.toString()
-				String[] tokens = commit.split(delims);
-				String auxSha = tokens[2]
-				String sha = auxSha.substring(6)
-				println(sha)
-				
-			}*/
+		//testing
 		
 		GremlinQuery gq = new GremlinQuery("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
+		
+		
+		
 		for(mergeCommit in gq.getMergeCommitsList() ){
 			
-			println(mergeCommit.sha)
-		}	
+			println("Commit: " + mergeCommit.sha)
+			println("Parent 1: " + mergeCommit.parent1)
+			println("Parent 2: " + mergeCommit.parent2)
+		
+			}
+		
+		/*Gremlin.load()
+		Graph graph = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
+		def commit = graph.idx("commit-idx").get("hash", "d9c87e1cc9b192837942ec658910cb7465b526dd").first()
+		def parentsTemp = commit.outE('COMMIT_PARENT').sort{it.date}
+		
+		String delims = "[>]"
+		
+		for(parent in parentsTemp){
+			String[] tokens = parent.toString().split(delims)
+			String idTemp = tokens[1]
+			String id = idTemp.substring(0, (idTemp.size() - 1))
+			def parentCommit = graph.v(id).map
+			
+			String p = parentCommit.getAt(1).toString()
+			
+			println(p)
+			for(p in parentCommit){
+				
+				println(p.toString())
+			}
+			
+			//println(id)
+		}*/
+		
+		
 			
 		
 	}
