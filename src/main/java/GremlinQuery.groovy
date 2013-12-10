@@ -22,10 +22,6 @@ class GremlinQuery {
 		Gremlin.load()
 		this.setAllMergeCommits(path)
 		
-		//TO DO
-		//Printer p = new Printer()
-		//p.writeCSV(this.mergeCommitslist)
-		
 	}
 	
 	public ArrayList<MergeCommit> getMergeCommitsList(){
@@ -48,7 +44,7 @@ class GremlinQuery {
 			mc.parent1 = parents.getAt(0)
 			mc.parent2 = parents.getAt(1)
 			
-			//mc.parentsCommonAncestor = this.getParentsCommonAncestor()*/
+			mc.parentsCommonAncestor = this.getParentsCommonAncestor(mc.parent1, mc.parent2)
 			
 			this.setMergeCommit(mc)
 			
@@ -131,57 +127,21 @@ class GremlinQuery {
 		return id
 		
 	}
-	public void getParentsCommonAncestor(){
-		
-	}
 	
-	
-	
-	public static void main (String[] args){
+	//TO DO
+	public String getParentsCommonAncestor(String parent1, String parent2){
 		
-		//testing
+		String commonAncestor = ""
+		boolean foundCommonAncestor = false
 		
-		GremlinQuery gq = new GremlinQuery("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
-		
-		
-		
-		for(mergeCommit in gq.getMergeCommitsList() ){
+		/*while(!foundCommonAncestor){
 			
-			println("Commit: " + mergeCommit.sha)
-			println("Parent 1: " + mergeCommit.parent1)
-			println("Parent 2: " + mergeCommit.parent2)
-		
-			}
-		
-		/*Gremlin.load()
-		Graph graph = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
-		def commit = graph.idx("commit-idx").get("hash", "d9c87e1cc9b192837942ec658910cb7465b526dd").first()
-		def parentsTemp = commit.outE('COMMIT_PARENT').sort{it.date}
-		
-		String delims = "[>]"
-		
-		for(parent in parentsTemp){
-			String[] tokens = parent.toString().split(delims)
-			String idTemp = tokens[1]
-			String id = idTemp.substring(0, (idTemp.size() - 1))
-			def parentCommit = graph.v(id).map
 			
-			String p = parentCommit.getAt(1).toString()
 			
-			println(p)
-			for(p in parentCommit){
-				
-				println(p.toString())
-			}
-			
-			//println(id)
 		}*/
-		
-		
-			
+		return commonAncestor
 		
 	}
-	
 	
 	
 }
