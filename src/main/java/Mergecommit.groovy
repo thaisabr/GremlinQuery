@@ -1,5 +1,5 @@
 
-class Mergecommit {
+class MergeCommit {
 	
 	String sha
 	String parent1

@@ -13,28 +13,90 @@ import org.neo4j.management.impl.*
 
 class GremlinQuery {
 	
-	ArrayList<Mergecommit> mergeCommitslist = new ArrayList<Mergecommit>()
+	ArrayList<MergeCommit> mergeCommitsList = new ArrayList<MergeCommit>()
+	Graph graph
 	
-	static {
+	
+	public GremlinQuery(String path){
+		
 		Gremlin.load()
-	  }
+		this.setAllMergeCommits(path)
+		
+		//TO DO
+		//Printer p = new Printer()
+		//p.writeCSV(this.mergeCommitslist)
+		
+	}
 	
-	public void getMergeCommits() {
+	public ArrayList<MergeCommit> getMergeCommitsList(){
 		
-		def g = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
+		return this.mergeCommitsList
+	}
+	
+	public void setAllMergeCommits(String path){
 		
-		def queryCommits = g.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
-
-		for(commits in queryCommits){
+		this.setGraph(path)
+		
+		def shas = this.getShas()
+		
+		for(sha in shas){
 			
-			//queryCommits.getProperties().
-			//mergeCommitslist.add()
+			MergeCommit mc = new MergeCommit()
+			mc.sha = sha
+			
+			/*String[] parents = this.getParents(sha)
+			mc.parent1 = parents[0]
+			mc.parent2 = parents[1]
+			
+			mc.parentsCommonAncestor = this.getParentsCommonAncestor()*/
+			
+			this.setMergeCommit(mc)
+			
 			
 		}
 		
+		
+		
+	}
+	
+	public void setGraph(String path){
+		
+		this.graph = new Neo4jGraph(path)
+	}
+	
+	public void setMergeCommit(MergeCommit mc){
+		
+		
+		this.mergeCommitsList.add(mc)
+	}
+	
+	
+	public ArrayList<String> getShas() {
+		
+		def queryCommits = this.graph.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
+		ArrayList<String> results = new ArrayList<String>()
+		for(commit in queryCommits){
+			
+			results.add(this.auxGetSha(commit.toString()))
+			
+		}
+		
+		return results
 	  }
 	
+	private String auxGetSha(String commit){
+		
+		String delims = "[,]"
+		String[] tokens = commit.split(delims);
+		String auxSha = tokens[2]
+		String sha = auxSha.substring(6)
+		
+		return sha
+	
+	}
 	public void getParents(){
+		
+		
 		
 	}
 	
@@ -42,20 +104,33 @@ class GremlinQuery {
 		
 	}
 	
+	
+	
 	public static void main (String[] args){
 		//def g = new GremlinQuery();
 		
-		Gremlin.load()
+		/*Gremlin.load()
 		
-		def g = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
+		Graph g = new Neo4jGraph("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
 		def results = g.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
 		
-			/*for ( HashMap<StartPipe, PropertyMapPipe> m in results) {
+		String delims = "[,]"
+		
+			for ( m in results) {
 				
-		def sha = m.keySet().getAt("hash")
+				String commit = m.toString()
+				String[] tokens = commit.split(delims);
+				String auxSha = tokens[2]
+				String sha = auxSha.substring(6)
 				println(sha)
+				
 			}*/
+		
+		GremlinQuery gq = new GremlinQuery("/Users/paolaaccioly/Documents/Doutorado/gitminer/graph.db")
+		for(mergeCommit in gq.getMergeCommitsList() ){
 			
+			println(mergeCommit.sha)
+		}	
 			
 		
 	}
