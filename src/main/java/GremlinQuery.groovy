@@ -22,6 +22,7 @@ class GremlinQuery {
 		Gremlin.load()
 		this.setAllMergeCommits(path)
 		
+		
 	}
 	
 	public ArrayList<MergeCommit> getMergeCommitsList(){
@@ -38,6 +39,7 @@ class GremlinQuery {
 		for(sha in shas){
 			
 			MergeCommit mc = new MergeCommit()
+			
 			mc.sha = sha
 			
 			String[] parents = this.getParentsSha(sha)
