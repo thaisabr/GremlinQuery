@@ -34,9 +34,9 @@ class GremlinQuery {
 		
 		this.setGraph(path)
 		
-		def shas = this.getShas()
+		def mergeCommitShas = this.getShas()
 		
-		for(sha in shas){
+		for(sha in mergeCommitShas){
 			
 			MergeCommit mc = new MergeCommit()
 			
@@ -45,8 +45,6 @@ class GremlinQuery {
 			String[] parents = this.getParentsSha(sha)
 			mc.parent1 = parents.getAt(0)
 			mc.parent2 = parents.getAt(1)
-			
-			mc.parentsCommonAncestor = this.getParentsCommonAncestor(mc.parent1, mc.parent2)
 			
 			this.setMergeCommit(mc)
 			
@@ -71,9 +69,9 @@ class GremlinQuery {
 	
 	public ArrayList<String> getShas() {
 		
-		def queryCommits = this.graph.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
+		def mergeCommits = this.graph.V.map.filter{it._type == "COMMIT" & it.isMerge == true}.sort{it.date}
 		ArrayList<String> results = new ArrayList<String>()
-		for(commit in queryCommits){
+		for(commit in mergeCommits){
 			
 			results.add(this.auxGetSha(commit.toString()))
 			
@@ -127,21 +125,6 @@ class GremlinQuery {
 		String id = idTemp.substring(0, (idTemp.size() - 1))
 		
 		return id
-		
-	}
-	
-	//TO DO
-	public String getParentsCommonAncestor(String parent1, String parent2){
-		
-		String commonAncestor = ""
-		boolean foundCommonAncestor = false
-		
-		/*while(!foundCommonAncestor){
-			
-			
-			
-		}*/
-		return commonAncestor
 		
 	}
 	
