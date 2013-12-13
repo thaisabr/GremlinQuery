@@ -15,9 +15,13 @@ MergeCommitN, Parent1, Parent2
 
 
 Currently, the project saves the output list in a .csv file.
-To run this project, first you need to clone and run Gitminer (https://github.com/pridkett/gitminer) in order to 
-download the database containing the desired projects metadata. Next, you need to clone this 
-repository, run 'mvn clean compile package' to download the project's dependencies, edit the directory path 
-in the App.groovy main method and run this class.
-
+To run this project, you need the following instructions:
+1- Clone and run Gitminer (https://github.com/pridkett/gitminer), according with their instructions to 
+download the database containing the desired projects metadata. 
+2- Once you have the graph.db file in your computer, clone or download the GremlinQuery project
+3- Run 'mvn eclipse:clean' to download the project's dependencies. 
+4- Import the project into eclipse using "Import > Maven > Existing project into workspace..."  
+5- In the App.groovy main method, point the directory path where your graph.db folder is located 
+6- Run App.groovy. The .csv file will be created in the directory where you cloned the GremlinQuery
+project.
 
