@@ -7,6 +7,7 @@ class App {
 	
 		Printer p = new Printer()
 		p.writeCSV(gq.getMergeCommitsList())
+		println('Finished!')
 		
 		
 		
