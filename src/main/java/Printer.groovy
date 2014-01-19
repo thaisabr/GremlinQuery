@@ -7,6 +7,11 @@ class Printer {
 		
 		def out = new File('commits.csv')
 		
+		// deleting old files if it exists
+		out.delete()
+		
+		out = new File('commits.csv')
+		
 		def firstRow = ["Merge commit", "Parent 1", "Parent 2"]
 		out.append firstRow.join(',')
 		out.append '\n'
