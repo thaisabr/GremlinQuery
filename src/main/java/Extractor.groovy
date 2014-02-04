@@ -1,5 +1,3 @@
-import java.util.concurrent.TimeUnit
-
 import org.eclipse.jgit.api.CleanCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.MergeCommand
@@ -8,7 +6,6 @@ import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.lib.RepositoryBuilder
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
 import util.ChkoutCmd
@@ -174,7 +171,7 @@ class Extractor {
 			}
 			// avoiding references issues
 			this.deleteBranch("new")
-		} catch(Exception e){
+		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
 			this.ERROR = true
 			println "ERROR: " + e
 			// reseting
@@ -216,7 +213,7 @@ class Extractor {
 			}
 			// avoiding references issues
 			this.deleteBranch("new")
-		} catch(Exception e){
+		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
 			this.ERROR = true
 			println "ERROR: " + e
 			this.restoreGitRepository()
@@ -227,7 +224,7 @@ class Extractor {
 			this.git.getRepository().close()
 		}
 	}
-	
+
 	def moveConflictingFiles(parent1, parent2, allConflicts) {
 		// folder of the revisions being tested
 		def allRevFolder = this.projectsDirectory + this.project.name + "/revisions/rev_" + parent1.substring(0, 5) + "_" + parent2.substring(0, 5)
@@ -246,7 +243,6 @@ class Extractor {
 			def refNew = checkoutAndCreateBranch("new", parent2)
 			// copy files for parent2 revision
 			destinationDir = allRevFolder + "/rev_right_" + parent2.substring(0, 5)
-			def excludeDir	   = "**/" + allRevFolder + "/**"
 			this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
 			// git checkout master
 			checkoutMasterBranch()
@@ -263,10 +259,10 @@ class Extractor {
 				this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
 				// the input revisions listed in a file
 				this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), revBase.substring(0, 5), allRevFolder)
-			} 
+			}
 			// avoiding references issues
 			this.deleteBranch("new")
-		} catch(Exception e){
+		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
 			this.ERROR = true
 			println "ERROR: " + e
 			// reseting
@@ -304,7 +300,7 @@ class Extractor {
 			}
 			// avoiding references issues
 			this.deleteBranch("new")
-		} catch(Exception e){
+		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
 			this.ERROR = true
 			println "ERROR: " + e
 			this.restoreGitRepository()
@@ -345,13 +341,30 @@ class Extractor {
 	def copyFiles(String sourceDir, String destinationDir, ArrayList<String> listConflicts){
 		AntBuilder ant = new AntBuilder()
 		listConflicts.each {
-			String file = "**/" + it
-			ant.copy(todir: destinationDir) {
-				fileset(dir: sourceDir){
-					include(name:file)
+			def folder = it.split("/")
+			def fileName = folder[(folder.size()-1)]
+			if(fileName.contains(".")){
+				def fileExt = fileName.split("\\.")[1]
+				if(canCopy(fileExt)){
+					folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
+					String file = "**/" + it
+					ant.mkdir(dir:folder)
+					ant.copy(todir: destinationDir) {
+						fileset(dir: sourceDir){
+							include(name:file)
+						}
+					}
 				}
 			}
 		}
+	}
+
+	def boolean canCopy(String fileName){
+		boolean can = false
+		if(fileName.equals("java") || fileName.equals("py") || fileName.equals("cs")){
+			can = true
+		}
+		return can
 	}
 
 	def deleteFiles(String dir){
@@ -359,25 +372,28 @@ class Extractor {
 	}
 
 	def writeRevisionsFile(String leftRev, String rightRev, String baseRev, String dir){
-		def filePath = dir + "/rev_" + leftRev + "-" + rightRev + ".revision"
-		def out = new File(filePath)
-		// deleting old files if it exists
-		out.delete()
-		out = new File(filePath)
-		def row = "rev_left_" + leftRev
-		out.append row
-		out.append '\n'
-		row = "rev_base_" + baseRev
-		out.append row
-		out.append '\n'
-		row = "rev_right_" + rightRev
-		out.append row
-		out.append '\n'
+		try{
+			def filePath = dir + "/rev_" + leftRev + "-" + rightRev + ".revisions"
+			def out = new File(filePath)
+			// deleting old files if it exists
+			out.delete()
+			out = new File(filePath)
+			def row = "rev_left_" + leftRev
+			out.append row
+			out.append '\n'
+			row = "rev_base_" + baseRev
+			out.append row
+			out.append '\n'
+			row = "rev_right_" + rightRev
+			out.append row
+			out.append '\n'
+		}catch(Exception e){} //The file is not created, and just return
 	}
 
 	def setup(){
 		println "Setupping..."
 		// keeping a backup dir
+		this.openRepository()
 		new AntBuilder().copy(todir:"E:/TG/gitClones/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
 		println "----------------------"
 	}
@@ -433,12 +449,5 @@ class Extractor {
 		//
 		//		Extractor ex = new Extractor(p)
 		//		//ex.extractCommits()
-
-		AntBuilder ant = new AntBuilder()
-		ant.copy(todir: "todir") {
-			fileset(dir: "gitClones/tgm/git"){
-				include(name:"**/CaseStudy.java")
-			}
-		}
 	}
 }
