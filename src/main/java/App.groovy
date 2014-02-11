@@ -16,11 +16,11 @@ class App {
 			println('Printer Finished!')
 			println("----------------------")
 
-			/*it.setMergeCommits(gq.getMergeCommitsList())
+			it.setMergeCommits(gq.getMergeCommitsList())
 
 			Extractor e = new Extractor(it)
 			e.extractCommits()
-			println('Extractor Finished!\n')*/
+			println('Extractor Finished!\n')
 		}
 	}
 
@@ -47,6 +47,6 @@ class App {
 	
 
 	public static void main (String[] args){
-		run()
+		runWithCommitCsv()
 	}
 }
