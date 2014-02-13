@@ -469,7 +469,7 @@ class Extractor {
 			// git checkout -b ancestor ANCESTOR
 			def refAncestor = checkoutAndCreateBranch("ancestor", ancestor)
 			// copy files for ancestor revision
-			destinationDir = allRevFolder + "/rev_ancestor_" + ancestor.substring(0, 5)
+			destinationDir = allRevFolder + "/rev_base_" + ancestor.substring(0, 5)
 			excludeDir	   = "**/" + allRevFolder + "/**"
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
 			
