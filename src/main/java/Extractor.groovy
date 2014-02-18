@@ -12,6 +12,7 @@ import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.lib.ObjectId;
 
 import util.ChkoutCmd
+import util.RecursiveFileList
 
 class Extractor {
 
@@ -355,6 +356,7 @@ class Extractor {
 					ant.copy(todir: destinationDir) {
 						fileset(dir: sourceDir){
 							include(name:file)
+							
 						}
 					}
 				}
@@ -454,7 +456,11 @@ class Extractor {
 			
 			// copy files for parent1 revision
 			def destinationDir = allRevFolder + "/rev_left_" + parent1.substring(0, 5)
+			
 			this.copyFiles(this.repositoryDir, destinationDir, "")
+			def rec = new RecursiveFileList()
+			rec.removeFiles(new File(destinationDir))
+			
 			// git clean -f
 			CleanCommand cleanCommandgit = this.git.clean()
 			cleanCommandgit.call()
@@ -464,14 +470,24 @@ class Extractor {
 			// copy files for parent2 revision
 			destinationDir = allRevFolder + "/rev_right_" + parent2.substring(0, 5)
 			def excludeDir	   = "**/" + allRevFolder + "/**"
+			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
+			
+			rec.removeFiles(new File(destinationDir))
 	
 			// git checkout -b ancestor ANCESTOR
+			
+			checkoutMasterBranch()
+			cleanCommandgit = this.git.clean()
+			cleanCommandgit.call()
+			
 			def refAncestor = checkoutAndCreateBranch("ancestor", ancestor)
 			// copy files for ancestor revision
 			destinationDir = allRevFolder + "/rev_base_" + ancestor.substring(0, 5)
 			excludeDir	   = "**/" + allRevFolder + "/**"
+			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
+			rec.removeFiles(new File(destinationDir))
 			
 			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), ancestor.substring(0, 5), allRevFolder)
 			// avoiding references issues
@@ -526,6 +542,7 @@ class Extractor {
 	}
 	 
 	 
+	 
 	static void main (String[] args){
 		//		//testing
 		//		MergeCommit mc = new MergeCommit()
@@ -544,5 +561,7 @@ class Extractor {
 		//
 		//		Extractor ex = new Extractor(p)
 		//		//ex.extractCommits()
+		
+		
 	}
 }
