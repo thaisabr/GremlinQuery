@@ -82,7 +82,6 @@ class GremlinQuery {
 	
 	private String auxGetSha(String commit){
 		
-		
 		String delims = "[,]"
 		String[] tokens = commit.split(delims);
 		

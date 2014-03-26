@@ -432,8 +432,16 @@ class Extractor {
 			//this.runAllFiles(SHA_1, SHA_2)
 			//elseif you wan't to download all merges
 			
-			def ancestorSHA = this.findCommonAncestor(SHA_1, SHA_2)
-			this.downloadAllFiles(SHA_1, SHA_2, ancestorSHA)
+	
+				def ancestorSHA = this.findCommonAncestor(SHA_1, SHA_2)
+				if(ancestorSHA != null){
+				this.downloadAllFiles(SHA_1, SHA_2, ancestorSHA)
+				}else{
+				println('commit sha:' + mc.getSha() + ' returned null on common ancestor search.')
+				}
+			
+			
+			
 			//endif
 			
 			if(!this.ERROR){
@@ -531,10 +539,14 @@ class Extractor {
 		 walk.markStart(walk.parseCommit(shaParent2))
 		 
 		 ObjectId commonAncestor = walk.next()
+		
 		 
+		 if(commonAncestor != null){
 		ancestor = commonAncestor.toString()substring(7, 47)
-		 
 		println('The common ancestor is: ' + ancestor)
+		 }
+		 
+		
 		
 		 this.git.getRepository().close()
 		
