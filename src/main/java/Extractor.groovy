@@ -380,6 +380,8 @@ class Extractor {
 		try{
 			def filePath = dir + "/rev_" + leftRev + "-" + rightRev + ".revisions"
 			def out = new File(filePath)
+			
+			this.writeRevisionsFilePathsFile(filePath)
 			// deleting old files if it exists
 			out.delete()
 			out = new File(filePath)
@@ -394,7 +396,21 @@ class Extractor {
 			out.append '\n'
 		}catch(Exception e){} //The file is not created, and just return
 	}
-
+	
+	def writeRevisionsFilePathsFile(String filePath){
+		
+		try {
+			def out = new File('RevisionsFiles.csv')
+			def row = filePath + '\n'
+			out.append(row)
+			
+		} catch (Exception e) {
+			
+			//The file is not created, and just return
+		}
+		
+	}
+	
 	def setup(){
 		println "Setupping..."
 		// keeping a backup dir
