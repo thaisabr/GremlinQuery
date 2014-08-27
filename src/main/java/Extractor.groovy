@@ -97,6 +97,7 @@ class Extractor {
 
 	def checkoutMasterBranch() {
 		ChkoutCmd chkcmd = new ChkoutCmd(this.git.getRepository());
+		//change here if project does not contain a master branch
 		chkcmd.setName("refs/heads/master")
 		chkcmd.setForce(true)
 		Ref checkoutResult = chkcmd.call()
@@ -498,7 +499,8 @@ class Extractor {
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
 			
 			rec.removeFiles(new File(destinationDir))
-	
+			cleanCommandgit = this.git.clean()
+			cleanCommandgit.call()
 			// git checkout -b ancestor ANCESTOR
 			
 			checkoutMasterBranch()
