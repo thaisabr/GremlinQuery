@@ -1,3 +1,5 @@
+import java.awt.geom.Path2D.Iterator;
+
 
 
 
@@ -19,10 +21,9 @@ class App {
 			println("----------------------")
 
 			/*it.setMergeCommits(gq.getMergeCommitsList())
-
-			Extractor e = new Extractor(it)
-			e.extractCommits()
-			println('Extractor Finished!\n')*/
+			 Extractor e = new Extractor(it)
+			 e.extractCommits()
+			 println('Extractor Finished!\n')*/
 		}
 	}
 
@@ -45,56 +46,93 @@ class App {
 			println('Extractor Finished!\n')
 		}
 	}
-	
-	def static choose25MergeScenarios(){
-		
+
+	def static choose25MergeScenarios(String analyzedScenarios){
+
 		Read r = new Read("projects.csv")
-		def projects = r.getProjects()
+		def project = r.getProjects().get(0)
 		println('Reader Finished!')
-		
-		projects.each {
-			GremlinQuery gq = new GremlinQuery(it.graph)
-			ArrayList<MergeCommit> allMergeScenarios = gq.getMergeCommitsList()
-			double temp = allMergeScenarios.size/5
-			int partitionsSize = temp.round()
-			ArrayList<ArrayList<MergeCommit>> partitionsTemp = allMergeScenarios.collate(partitionsSize)
-			ArrayList<MergeCommit> partitions = new ArrayList<MergeCommit>();
+
+
+		GremlinQuery gq = new GremlinQuery(project.graph)
+
+		ArrayList<MergeCommit> mergeScenarios = removeAnalyzedScenarios(analyzedScenarios, gq.getMergeCommitsList())
+		double temp = mergeScenarios.size/5
+		int partitionsSize = temp.round()
+		ArrayList<ArrayList<MergeCommit>> partitionsTemp = mergeScenarios.collate(partitionsSize)
+		ArrayList<MergeCommit> partitions = new ArrayList<MergeCommit>();
+
+		(0..4).each{
+
+			partitions.add(partitionsTemp.get(it))
+		}
+
+
+
+		ArrayList<MergeCommit> chosenMergeScenarios = new ArrayList<MergeCommit>();
+
+
+
+		for(ArrayList<MergeCommit> partition : partitions){
+
+			Collections.shuffle(partition)
 			
 			(0..4).each{
 				
-				partitions.add(partitionsTemp.get(it))
+				chosenMergeScenarios.add(partition.get(it))
 			}
 			
+
+		}
+
+		Printer p = new Printer()
+		p.writeCSV(chosenMergeScenarios)
+		println('Printer Finished!')
+		println("----------------------")
+
+
+
+	}
+
+	def static ArrayList<MergeCommit> removeAnalyzedScenarios(String revisionFile, ArrayList<MergeCommit> allMergeScenarios){
+
+		ArrayList<MergeCommit> notAnalyzedScenarios = new ArrayList<MergeCommit>()
+
+		def analyzedScenarios = new File(revisionFile)
+		
+		for(MergeCommit commit : allMergeScenarios){
 			
-			
-			ArrayList<MergeCommit> chosenMergeScenarios = new ArrayList<MergeCommit>();
-			
-			
-			
-			for(ArrayList<MergeCommit> partition : partitions){
+			boolean found = false
+			analyzedScenarios.eachLine {
 				
-				def random = new Random()
-				
-				(0..4).each {
+				if(!it.empty){
+					String sha = it.toString().substring(0, 40)
 					
-					def i = random.nextInt(partition.size())
-					chosenMergeScenarios.add(partition.get(i))
-					
+					if(commit.getSha().equals(sha)){
+						found = true
+					}
 					
 				}
 				
+				
 			}
 			
-			Printer p = new Printer()
-			p.writeCSV(chosenMergeScenarios)
-			println('Printer Finished!')
-			println("----------------------")
+			if(!found){
+				
+				notAnalyzedScenarios.add(commit)
+			}
+			
 			
 		}
-		
+
+		return notAnalyzedScenarios
 	}
 
 	public static void main (String[] args){
-		choose25MergeScenarios()
+		runWithCommitCsv()
+
+		//choose25MergeScenarios('/Users/paolaaccioly/Documents/Doutorado/study_data/mockito/commits.csv')
+
+
 	}
 }
