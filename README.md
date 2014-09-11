@@ -22,9 +22,9 @@ download the database containing the desired projects metadata.
 
 2- Once you have the graph.db file in your computer, clone or download the GremlinQuery project
 
-3- Run 'mvn eclipse:clean' to download the project's dependencies. 
+3- Run 'mvn eclipse:eclipse' to download the project's dependencies. 
 
-4- Import the project into eclipse using "Import > Maven > Existing project into workspace..."  
+4- Import the project into eclipse as a Java project 
 
 5- In the App.groovy main method, point the directory path where your graph.db folder is located 
 
