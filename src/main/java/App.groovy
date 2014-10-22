@@ -24,7 +24,19 @@ class App {
 			 Extractor e = new Extractor(it)
 			 e.extractCommits()
 			 println('Extractor Finished!\n')*/
+			projects.each {
+				r.setCsvCommitsFile("commits.csv")
+				r.readCommitsCSV()
+				def ls = r.getMergeCommitsList()
+	
+				it.setMergeCommits(ls)
+	
+				Extractor e = new Extractor(it)
+				e.extractCommits()
+				println('Extractor Finished!\n')
+			}
 		}
+		System.exit(0)
 	}
 
 	def static runWithCommitCsv(){
@@ -47,7 +59,7 @@ class App {
 		}
 	}
 
-	def static choose25MergeScenarios(String analyzedScenarios){
+	def static choose25MergeScenarios(){
 
 		Read r = new Read("projects.csv")
 		def project = r.getProjects().get(0)
@@ -56,7 +68,8 @@ class App {
 
 		GremlinQuery gq = new GremlinQuery(project.graph)
 
-		ArrayList<MergeCommit> mergeScenarios = removeAnalyzedScenarios(analyzedScenarios, gq.getMergeCommitsList())
+		//ArrayList<MergeCommit> mergeScenarios = removeAnalyzedScenarios(analyzedScenarios, gq.getMergeCommitsList())
+		ArrayList<MergeCommit> mergeScenarios = gq.getMergeCommitsList()
 		double temp = mergeScenarios.size/5
 		int partitionsSize = temp.round()
 		ArrayList<ArrayList<MergeCommit>> partitionsTemp = mergeScenarios.collate(partitionsSize)
@@ -129,9 +142,11 @@ class App {
 	}
 
 	public static void main (String[] args){
-		runWithCommitCsv()
+		//runWithCommitCsv()
+		
+		run()
 
-		//choose25MergeScenarios('/Users/paolaaccioly/Documents/Doutorado/study_data/mockito/commits.csv')
+		//choose25MergeScenarios()
 
 
 	}
