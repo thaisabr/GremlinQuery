@@ -40,7 +40,7 @@ class Extractor {
 		this.project			= project
 		this.listMergeCommit 	= this.project.listMergeCommit
 		this.remoteUrl 			= this.project.url
-		this.projectsDirectory	= "E:/TG/gitClones/"
+		this.projectsDirectory	= "C:/GGTS/ggts-bundle/workspace/others/git clones/"
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
@@ -185,7 +185,7 @@ class Extractor {
 		}
 	}
 
-	def runOnlyConflicts(parent1, parent2) {
+	def downloadOnlyConflicting(parent1, parent2) {
 		try{
 			// opening the working directory
 			this.git = openRepository();
@@ -394,7 +394,7 @@ class Extractor {
 		println "Setupping..."
 		// keeping a backup dir
 		this.openRepository()
-		new AntBuilder().copy(todir:"E:/TG/gitClones/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
+		new AntBuilder().copy(todir:"C:/GGTS/ggts-bundle/workspace/others/git clonestemp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
 		println "----------------------"
 	}
 
@@ -403,7 +403,7 @@ class Extractor {
 		this.git.getRepository().close()
 		// restoring the backup dir
 		new File(this.projectsDirectory+this.project.name+"/git").deleteDir()
-		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:"E:/TG/gitClones/temp/"+this.project.name+"/git" , defaultExcludes: false){}}
+		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:"C:/GGTS/ggts-bundle/workspace/others/git clones/temp/"+this.project.name+"/git" , defaultExcludes: false){}}
 	}
 
 	def extractCommits(){
@@ -421,7 +421,7 @@ class Extractor {
 			// the commits to checkout
 			def SHA_1 = mc.parent1
 			def SHA_2 = mc.parent2
-			this.runOnlyConflicts(SHA_1, SHA_2)
+			this.downloadOnlyConflicting(SHA_1, SHA_2)
 
 			if(!this.ERROR){
 				println "----------------------"
