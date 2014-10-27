@@ -44,7 +44,7 @@ class Extractor {
 		this.project			= project
 		this.listMergeCommit 	= this.project.listMergeCommit
 		this.remoteUrl 			= this.project.url
-		this.projectsDirectory	= "/Users/paolaaccioly/gitClones/"
+		this.projectsDirectory	= "/media/ines/b9d638e1-93ee-435a-af41-80d544917e00/gitClones/"
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
@@ -416,7 +416,7 @@ class Extractor {
 		println "Setupping..."
 		// keeping a backup dir
 		this.openRepository()
-		new AntBuilder().copy(todir:"/Users/paolaaccioly/gitClones/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
+		new AntBuilder().copy(todir: this.projectsDirectory + "/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
 		println "----------------------"
 	}
 
@@ -425,7 +425,7 @@ class Extractor {
 		this.git.getRepository().close()
 		// restoring the backup dir
 		new File(this.projectsDirectory+this.project.name+"/git").deleteDir()
-		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:"/Users/paolaaccioly/gitClones/temp/"+this.project.name+"/git" , defaultExcludes: false){}}
+		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:this.projectsDirectory + "/temp/" + this.project.name+"/git" , defaultExcludes: false){}}
 	}
 
 	def extractCommits(){
