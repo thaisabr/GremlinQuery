@@ -344,26 +344,26 @@ class Extractor {
 	}
 
 	def copyFiles(String sourceDir, String destinationDir, ArrayList<String> listConflicts){
-		AntBuilder ant = new AntBuilder()
-		listConflicts.each {
-			def folder = it.split("/")
-			def fileName = folder[(folder.size()-1)]
-			if(fileName.contains(".")){
-				def fileExt = fileName.split("\\.")[1]
-				if(canCopy(fileExt)){
-					folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
-					String file = "**/" + it
-					ant.mkdir(dir:folder)
-					ant.copy(todir: destinationDir) {
-						fileset(dir: sourceDir){
-							include(name:file)
-							
-						}
-					}
-				}
-			}
-		}
-	}
+        AntBuilder ant = new AntBuilder()
+        listConflicts.each {
+            def folder = it.split("/")
+            def fileName = folder[(folder.size()-1)]
+            if(fileName.contains(".")){
+                def fileNameSplitted = fileName.split("\\.")
+                def fileExt = fileName.split("\\.")[fileNameSplitted.size() -1]
+                if(canCopy(fileExt)){
+                    folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
+                    String file = "**/" + it
+                    ant.mkdir(dir:folder)
+                    ant.copy(todir: destinationDir) {
+                        fileset(dir: sourceDir){
+                            include(name:file)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	def boolean canCopy(String fileName){
 		boolean can = false
