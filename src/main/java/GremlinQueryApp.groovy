@@ -24,7 +24,7 @@ class GremlinQueryApp {
 			 Extractor e = new Extractor(it)
 			 e.extractCommits()
 			 println('Extractor Finished!\n')*/
-			/*projects.each {
+			projects.each {
 				r.setCsvCommitsFile("commits.csv")
 				r.readCommitsCSV()
 				def ls = r.getMergeCommitsList()
@@ -34,7 +34,7 @@ class GremlinQueryApp {
 				Extractor e = new Extractor(it)
 				e.extractCommits()
 				println('Extractor Finished!\n')
-			}*/
+			}
 		}
 		System.exit(0)
 	}
@@ -144,6 +144,11 @@ class GremlinQueryApp {
 	public void helloWorld(){
 		println 'hello world!'
 	}
+	
+	public String run(String projectName, String projectRepo, String graphBase){
+		
+	}
+	
 	public static void main (String[] args){
 		//runWithCommitCsv()
 		
