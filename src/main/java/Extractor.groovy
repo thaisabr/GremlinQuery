@@ -44,7 +44,7 @@ class Extractor {
 		this.project			= project
 		this.listMergeCommit 	= this.project.listMergeCommit
 		this.remoteUrl 			= this.project.url
-		this.projectsDirectory	= "/Users/paolaaccioly/gitClones/"
+		this.projectsDirectory	= "/media/ines/b9d638e1-93ee-435a-af41-80d544917e00/gitClones/"
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
@@ -344,26 +344,26 @@ class Extractor {
 	}
 
 	def copyFiles(String sourceDir, String destinationDir, ArrayList<String> listConflicts){
-		AntBuilder ant = new AntBuilder()
-		listConflicts.each {
-			def folder = it.split("/")
-			def fileName = folder[(folder.size()-1)]
-			if(fileName.contains(".")){
-				def fileExt = fileName.split("\\.")[1]
-				if(canCopy(fileExt)){
-					folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
-					String file = "**/" + it
-					ant.mkdir(dir:folder)
-					ant.copy(todir: destinationDir) {
-						fileset(dir: sourceDir){
-							include(name:file)
-							
-						}
-					}
-				}
-			}
-		}
-	}
+        AntBuilder ant = new AntBuilder()
+        listConflicts.each {
+            def folder = it.split("/")
+            def fileName = folder[(folder.size()-1)]
+            if(fileName.contains(".")){
+                def fileNameSplitted = fileName.split("\\.")
+                def fileExt = fileName.split("\\.")[fileNameSplitted.size() -1]
+                if(canCopy(fileExt)){
+                    folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
+                    String file = "**/" + it
+                    ant.mkdir(dir:folder)
+                    ant.copy(todir: destinationDir) {
+                        fileset(dir: sourceDir){
+                            include(name:file)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	def boolean canCopy(String fileName){
 		boolean can = false
@@ -416,7 +416,7 @@ class Extractor {
 		println "Setupping..."
 		// keeping a backup dir
 		this.openRepository()
-		new AntBuilder().copy(todir:"/Users/paolaaccioly/gitClones/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
+		new AntBuilder().copy(todir: this.projectsDirectory + "/temp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
 		println "----------------------"
 	}
 
@@ -425,7 +425,7 @@ class Extractor {
 		this.git.getRepository().close()
 		// restoring the backup dir
 		new File(this.projectsDirectory+this.project.name+"/git").deleteDir()
-		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:"/Users/paolaaccioly/gitClones/temp/"+this.project.name+"/git" , defaultExcludes: false){}}
+		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:this.projectsDirectory + "/temp/" + this.project.name+"/git" , defaultExcludes: false){}}
 	}
 
 	def extractCommits(){
