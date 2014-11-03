@@ -3,7 +3,7 @@ import java.awt.geom.Path2D.Iterator;
 
 
 
-class App {
+class GremlinQueryApp {
 
 	def static run(){
 		//testing
@@ -24,7 +24,7 @@ class App {
 			 Extractor e = new Extractor(it)
 			 e.extractCommits()
 			 println('Extractor Finished!\n')*/
-			projects.each {
+			/*projects.each {
 				r.setCsvCommitsFile("commits.csv")
 				r.readCommitsCSV()
 				def ls = r.getMergeCommitsList()
@@ -34,7 +34,7 @@ class App {
 				Extractor e = new Extractor(it)
 				e.extractCommits()
 				println('Extractor Finished!\n')
-			}
+			}*/
 		}
 		System.exit(0)
 	}
@@ -140,14 +140,17 @@ class App {
 
 		return notAnalyzedScenarios
 	}
-
+	
+	public void helloWorld(){
+		println 'hello world!'
+	}
 	public static void main (String[] args){
 		//runWithCommitCsv()
 		
 		run()
 
 		//choose25MergeScenarios()
-
+		
 
 	}
 }
