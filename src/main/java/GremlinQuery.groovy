@@ -4,7 +4,7 @@ import com.tinkerpop.blueprints.*
 import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph
 import com.tinkerpop.gremlin.groovy.Gremlin
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline
-import com.tinkerpop.gremlin.pipes.transform.PropertyMapPipe;
+import com.tinkerpop.gremlin.pipes.transform.PropertyMapPipe
 import com.tinkerpop.gremlin.*
 import com.tinkerpop.pipes.util.StartPipe;
 

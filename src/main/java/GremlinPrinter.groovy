@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 
 
-class Printer {
+class GremlinPrinter {
 	
 	public void writeCSV(ArrayList<MergeCommit> listMC){
 		

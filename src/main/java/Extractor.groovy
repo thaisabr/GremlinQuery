@@ -29,7 +29,7 @@ class Extractor {
 	private ArrayList<MergeCommit> listMergeCommit
 
 	// the referred project
-	private Project project
+	private GremlinProject project
 
 	// the git repository
 	private Git git
@@ -40,11 +40,11 @@ class Extractor {
 	// signal of error execution
 	private def ERROR
 
-	public Extractor(Project project){
+	public Extractor(GremlinProject project, String projectsDirectory){
 		this.project			= project
 		this.listMergeCommit 	= this.project.listMergeCommit
 		this.remoteUrl 			= this.project.url
-		this.projectsDirectory	= "/media/ines/b9d638e1-93ee-435a-af41-80d544917e00/gitClones/"
+		this.projectsDirectory	= projectsDirectory + File.separator
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
@@ -395,13 +395,14 @@ class Extractor {
 			row = "rev_right_" + rightRev
 			out.append row
 			out.append '\n'
+		
 		}catch(Exception e){} //The file is not created, and just return
 	}
 	
 	def writeRevisionsFilePathsFile(String filePath){
 		
 		try {
-			def out = new File('RevisionsFiles.csv')
+			def out = new File(this.project.name + '_RevisionsFiles.csv')
 			def row = filePath + '\n'
 			out.append(row)
 			
@@ -410,6 +411,12 @@ class Extractor {
 			//The file is not created, and just return
 		}
 		
+	}
+	
+	public String getRevisionFile(){
+		String current = new java.io.File( "." ).getCanonicalPath();
+		String filePath = current + File.separator + this.project.name + '_RevisionsFiles.csv'
+		return filePath
 	}
 	
 	def setup(){
@@ -484,7 +491,6 @@ class Extractor {
 			
 			this.copyFiles(this.repositoryDir, destinationDir, "")
 			def rec = new RecursiveFileList()
-			rec.removeFiles(new File(destinationDir))
 			
 			// git clean -f
 			CleanCommand cleanCommandgit = this.git.clean()
@@ -498,7 +504,6 @@ class Extractor {
 			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
 			
-			rec.removeFiles(new File(destinationDir))
 			cleanCommandgit = this.git.clean()
 			cleanCommandgit.call()
 			// git checkout -b ancestor ANCESTOR
@@ -513,7 +518,6 @@ class Extractor {
 			excludeDir	   = "**/" + allRevFolder + "/**"
 			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
-			rec.removeFiles(new File(destinationDir))
 			
 			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), ancestor.substring(0, 5), allRevFolder)
 			// avoiding references issues

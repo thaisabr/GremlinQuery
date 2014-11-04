@@ -3,13 +3,13 @@ import java.util.ArrayList;
 class Read {
 
 	private ArrayList<MergeCommit> listMergeCommit
-	private ArrayList<Project> listProject
+	private ArrayList<GremlinProject> listProject
 	private String csvCommitsFile
 	private String csvProjectsFile
 
 	public Read(fileName){
 		this.listMergeCommit = new ArrayList<MergeCommit>()
-		this.listProject = new ArrayList<Project>()
+		this.listProject = new ArrayList<GremlinProject>()
 		this.csvProjectsFile = fileName
 		this.readProjectsCSV()
 	}
@@ -64,7 +64,7 @@ class Read {
 			while ((line = br.readLine()) != null) {
 				String[] info = line.split(csvSplitBy)
 
-				def project = new Project()
+				def project = new GremlinProject()
 				project.name 	= info[0]
 				project.url = info[1]
 				project.graph = info[2]
@@ -93,7 +93,7 @@ class Read {
 		return this.listMergeCommit
 	}
 	
-	def ArrayList<Project> getProjects(){
+	def ArrayList<GremlinProject> getProjects(){
 		return this.listProject
 	}
 

@@ -15,7 +15,7 @@ class GremlinQueryApp {
 		projects.each {
 			GremlinQuery gq = new GremlinQuery(it.graph)
 
-			Printer p = new Printer()
+			GremlinPrinter p = new GremlinPrinter()
 			p.writeCSV(gq.getMergeCommitsList())
 			println('Printer Finished!')
 			println("----------------------")
@@ -31,7 +31,7 @@ class GremlinQueryApp {
 	
 				it.setMergeCommits(ls)
 	
-				Extractor e = new Extractor(it)
+				Extractor e = new Extractor(it, '/Users/paolaaccioly/Desktop/')
 				e.extractCommits()
 				println('Extractor Finished!\n')
 			}
@@ -53,7 +53,7 @@ class GremlinQueryApp {
 
 			it.setMergeCommits(ls)
 
-			Extractor e = new Extractor(it)
+			Extractor e = new Extractor(it,'/Users/paolaaccioly/Desktop' )
 			e.extractCommits()
 			println('Extractor Finished!\n')
 		}
@@ -98,7 +98,7 @@ class GremlinQueryApp {
 
 		}
 
-		Printer p = new Printer()
+		GremlinPrinter p = new GremlinPrinter()
 		p.writeCSV(chosenMergeScenarios)
 		println('Printer Finished!')
 		println("----------------------")
@@ -141,12 +141,15 @@ class GremlinQueryApp {
 		return notAnalyzedScenarios
 	}
 	
-	public void helloWorld(){
-		println 'hello world!'
-	}
 	
 	public String run(String projectName, String projectRepo, String graphBase){
-		
+		GremlinProject project = new GremlinProject(projectName, projectRepo, graphBase)
+		GremlinQuery gq = new GremlinQuery(project.graph)
+		Extractor e = new Extractor(project)
+		e.extractCommits()
+		println('All merges were downloaded from GitHub!\n')
+		return e.getRevisionFile()
+
 	}
 	
 	public static void main (String[] args){
