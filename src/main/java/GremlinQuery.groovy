@@ -20,6 +20,7 @@ class GremlinQuery {
 	public GremlinQuery(String path){
 		
 		Gremlin.load()
+		
 		this.setAllMergeCommits(path)
 		
 		
