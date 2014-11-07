@@ -85,6 +85,8 @@ class GremlinQuery {
 		return results
 	  }
 	
+
+	
 	private String auxGetSha(String commit){
 		
 		String delims = "[,]"
