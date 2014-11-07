@@ -31,6 +31,10 @@ class GremlinQuery {
 		return this.mergeCommitsList
 	}
 	
+	public void shutdownExistingGraph(){
+		this.graph.shutdown()
+	}
+	
 	public void setAllMergeCommits(String path){
 		
 		this.setGraph(path)

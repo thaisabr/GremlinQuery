@@ -23,5 +23,22 @@ class GremlinPrinter {
 		}
 		
 	}
+	
+	public void writeMissingUnknow(ArrayList<String> listMU){
+		
+		def out = new File('missingUnknown.csv')
+		
+		// deleting old files if it exists
+		out.delete()
+		
+		out = new File('missingUnknown.csv')
+		
+		listMU.each {
+			def row = [it]
+			out.append row.join(',')
+			out.append '\n'
+		}
+		
+	}
 
 }

@@ -11,6 +11,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.lib.ObjectId;
 
+import scala.util.control.Exception.Catch;
 import util.ChkoutCmd
 import util.RecursiveFileList
 
@@ -39,6 +40,8 @@ class Extractor {
 
 	// signal of error execution
 	private def ERROR
+	
+	private ArrayList<String> missingUnknown
 
 	public Extractor(GremlinProject project, String projectsDirectory){
 		this.project			= project
@@ -48,7 +51,7 @@ class Extractor {
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
-
+		this.missingUnknown = new ArrayList<MergeCommit>()
 		this.setup()
 	}
 
@@ -555,13 +558,16 @@ class Extractor {
 		 ObjectId shaParent1 = ObjectId.fromString(parent1)
 		 
 		 ObjectId shaParent2 = ObjectId.fromString(parent2)
-		 
+		 try{
 		 walk.markStart(walk.parseCommit(shaParent1))
 		 
 		 walk.markStart(walk.parseCommit(shaParent2))
 		 
 		 ObjectId commonAncestor = walk.next()
-		
+		 }catch(Exception e){
+		 e.printStackTrace()
+		 this.missingUnknown.add(shaParent1)
+		 }
 		 
 		 if(commonAncestor != null){
 		ancestor = commonAncestor.toString()substring(7, 47)
