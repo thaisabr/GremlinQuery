@@ -142,12 +142,12 @@ class GremlinQueryApp {
 	}
 	
 	
-	public String run(String projectName, String projectRepo, String graphBase){
+	public String run(String projectName, String projectRepo, String graphBase, String downloadPath){
 		GremlinProject project = new GremlinProject(projectName, projectRepo, graphBase)
 		GremlinQuery gq = new GremlinQuery(project.graph)
 		project.listMergeCommit = gq.mergeCommitsList
 		gq.shutdownExistingGraph()
-		Extractor e = new Extractor(project, 'gitClones')
+		Extractor e = new Extractor(project, downloadPath)
 		e.extractCommits()
 		println('All merges were downloaded from GitHub!\n')
 		return e.getRevisionFile()
