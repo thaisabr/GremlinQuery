@@ -146,7 +146,7 @@ class GremlinQueryApp {
 		GremlinProject project = new GremlinProject(projectName, projectRepo, graphBase)
 		GremlinQuery gq = new GremlinQuery(project.graph)
 		project.listMergeCommit = gq.mergeCommitsList
-		gq.dump()
+		gq.shutdownExistingGraph()
 		Extractor e = new Extractor(project, 'gitClones')
 		e.extractCommits()
 		println('All merges were downloaded from GitHub!\n')
