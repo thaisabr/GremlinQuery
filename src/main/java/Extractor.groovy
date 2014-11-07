@@ -52,9 +52,17 @@ class Extractor {
 		this.CONFLICTS 			= 0
 		this.ERROR				= false
 		this.missingUnknown = new ArrayList<MergeCommit>()
+		this.removeOldRevisionFile()
+		
 		this.setup()
 	}
-
+	
+	public void removeOldRevisionFile(){
+		def out = new File(this.project.name + '_RevisionsFiles.csv')
+		out.delete()
+		
+	}
+	
 	def cloneRepository(){
 		// prepare a new folder for the cloned repository
 		File gitWorkDir = new File(repositoryDir)
@@ -406,6 +414,8 @@ class Extractor {
 		
 		try {
 			def out = new File(this.project.name + '_RevisionsFiles.csv')
+
+			
 			def row = filePath + '\n'
 			out.append(row)
 			
@@ -522,7 +532,8 @@ class Extractor {
 			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
 			
-			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), ancestor.substring(0, 5), allRevFolder)
+			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), 
+				ancestor.substring(0, 5), allRevFolder)
 			// avoiding references issues
 			checkoutMasterBranch()
 			this.deleteBranch("ancestor")
@@ -555,19 +566,24 @@ class Extractor {
 		 
 		 walk.reset()
 		 
+		
+		 
 		 ObjectId shaParent1 = ObjectId.fromString(parent1)
 		 
 		 ObjectId shaParent2 = ObjectId.fromString(parent2)
-		 try{
-		 walk.markStart(walk.parseCommit(shaParent1))
 		 
-		 walk.markStart(walk.parseCommit(shaParent2))
+		 ObjectId commonAncestor = null
 		 
-		 ObjectId commonAncestor = walk.next()
-		 }catch(Exception e){
-		 e.printStackTrace()
-		 this.missingUnknown.add(shaParent1)
-		 }
+		 try {
+			 walk.markStart(walk.parseCommit(shaParent1))
+			 
+			 walk.markStart(walk.parseCommit(shaParent2))
+			 
+			 commonAncestor = walk.next()
+		} catch (Exception e) {
+			e.printStackTrace()
+		}
+		
 		 
 		 if(commonAncestor != null){
 		ancestor = commonAncestor.toString()substring(7, 47)
