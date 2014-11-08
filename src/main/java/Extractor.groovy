@@ -504,6 +504,7 @@ class Extractor {
 			
 			this.copyFiles(this.repositoryDir, destinationDir, "")
 			def rec = new RecursiveFileList()
+			rec.removeFiles(new File(destinationDir))
 			
 			// git clean -f
 			CleanCommand cleanCommandgit = this.git.clean()
@@ -516,6 +517,8 @@ class Extractor {
 			def excludeDir	   = "**/" + allRevFolder + "/**"
 			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
+			rec.removeFiles(new File(destinationDir))
+			
 			
 			cleanCommandgit = this.git.clean()
 			cleanCommandgit.call()
@@ -531,6 +534,7 @@ class Extractor {
 			excludeDir	   = "**/" + allRevFolder + "/**"
 			
 			this.copyFiles(this.repositoryDir, destinationDir, excludeDir)
+			rec.removeFiles(new File(destinationDir))
 			
 			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), 
 				ancestor.substring(0, 5), allRevFolder)
