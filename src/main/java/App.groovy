@@ -21,6 +21,7 @@ class App {
 			Extractor e = new Extractor(it)
 			e.extractCommits()
 			println('Extractor Finished!\n')
+			gq.graph.shutdown();
 		}
 	}
 
@@ -44,7 +45,27 @@ class App {
 		}
 	}
 
+	def static collectMergeCommits(){
+		//testing
+
+		Read r = new Read("projects.csv")
+		def projects = r.getProjects()
+		println('Reader Finished!')
+
+		projects.each {
+			GremlinQuery gq = new GremlinQuery(it.graph)
+
+			Printer p = new Printer()
+			p.writeCSV(gq.getMergeCommitsList())
+			println('Printer Finished!')
+			println("----------------------")
+
+			it.setMergeCommits(gq.getMergeCommitsList())
+			gq.graph.shutdown();
+		}
+	}
+
 	public static void main (String[] args){
-		runWithCommitCsv()
+		run()
 	}
 }

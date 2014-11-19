@@ -8,6 +8,7 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 
+import scala.util.control.Exception.Catch;
 import util.ChkoutCmd
 
 class Extractor {
@@ -20,6 +21,9 @@ class Extractor {
 
 	// the work folder
 	private String projectsDirectory
+	
+	// the temporary folder
+	private String tempdir
 
 	// the list of all merge commits
 	private ArrayList<MergeCommit> listMergeCommit
@@ -33,18 +37,19 @@ class Extractor {
 	// conflicts counter
 	private def CONFLICTS
 
-	// signal of error execution
+	// signal of error execution, number max of tries 5
 	private def ERROR
+	final int NUM_MAX_TRIES = 5;
 
 	public Extractor(Project project){
 		this.project			= project
 		this.listMergeCommit 	= this.project.listMergeCommit
 		this.remoteUrl 			= this.project.url
 		this.projectsDirectory	= "C:/GGTS/ggts-bundle/workspace/others/git clones/"
+		this.tempdir			= "C:/GGTS/ggts-bundle/workspace/others/git clones/temp/"+this.project.name+"/git"
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
-		this.ERROR				= false
-
+		this.ERROR				= 0;
 		this.setup()
 	}
 
@@ -186,6 +191,8 @@ class Extractor {
 	}
 
 	def downloadOnlyConflicting(parent1, parent2) {
+		// folder of the revisions being tested
+		def allRevFolder = this.projectsDirectory + this.project.name + "/revisions/rev_" + parent1.substring(0, 5) + "_" + parent2.substring(0, 5)
 		try{
 			// opening the working directory
 			this.git = openRepository();
@@ -202,8 +209,7 @@ class Extractor {
 			MergeCommand mergeCommand = this.git.merge()
 			mergeCommand.include(refNew)
 			MergeResult res = mergeCommand.call()
-			if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-				CONFLICTS = CONFLICTS + 1
+			if (res.getBase() != null && res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
 				println "Revision Base: " + res.getBase().toString()
 				println "Conflitcts: " + res.getConflicts().toString()
 				def allConflicts = printConflicts(res)
@@ -213,66 +219,90 @@ class Extractor {
 			}
 			// avoiding references issues
 			this.deleteBranch("new")
-		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
-			this.ERROR = true
-			println "ERROR: " + e
-			this.restoreGitRepository()
-			println "Trying again..."
-		} finally {
-			println "Closing git repository..."
-			// closing git repository
-			this.git.getRepository().close()
-		}
-	}
 
-	def moveConflictingFiles(parent1, parent2, allConflicts) {
-		// folder of the revisions being tested
-		def allRevFolder = this.projectsDirectory + this.project.name + "/revisions/rev_" + parent1.substring(0, 5) + "_" + parent2.substring(0, 5)
-		try{
-			// opening the working directory
-			this.git = openRepository();
-			// git reset --hard SHA1_1
-			this.resetCommand(this.git, parent1)
-			// copy files for parent1 revision
-			def destinationDir = allRevFolder + "/rev_left_" + parent1.substring(0, 5)
-			this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
-			// git clean -f
-			CleanCommand cleanCommandgit = this.git.clean()
-			cleanCommandgit.call()
-			// git checkout -b new SHA1_2
-			def refNew = checkoutAndCreateBranch("new", parent2)
-			// copy files for parent2 revision
-			destinationDir = allRevFolder + "/rev_right_" + parent2.substring(0, 5)
-			this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
-			// git checkout master
-			checkoutMasterBranch()
-			// git merge new
-			MergeCommand mergeCommand = this.git.merge()
-			mergeCommand.include(refNew)
-			MergeResult res = mergeCommand.call()
-			if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-				// git reset --hard BASE
-				def revBase = (res.getBase().toString()).split()[1]
-				this.resetCommand(this.git, revBase)
-				// copy files for base revision
-				destinationDir = allRevFolder + "/rev_base_" + revBase.substring(0, 5)
-				this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
-				// the input revisions listed in a file
-				this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), revBase.substring(0, 5), allRevFolder)
-			}
-			// avoiding references issues
-			this.deleteBranch("new")
+			// reseting number of tries
+			this.ERROR = 0;
+
 		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
-			this.ERROR = true
+			this.ERROR = this.ERROR+1;
 			println "ERROR: " + e
 			// reseting
 			this.deleteFiles(allRevFolder)
 			this.restoreGitRepository()
 			println "Trying again..."
+		}catch(org.eclipse.jgit.api.errors.JGitInternalException f){
+			println "ERROR: " + f
+			// reseting
+			this.deleteFiles(allRevFolder)
+			this.restoreGitRepository()
+		} catch(org.eclipse.jgit.dircache.InvalidPathException g){
+			println "ERROR: " + g
+			// reseting
+			this.deleteFiles(allRevFolder)
+			this.restoreGitRepository()
+		} catch(org.eclipse.jgit.api.errors.RefNotFoundException h){
+			println "ERROR: " + h
+			// reseting
+			this.deleteFiles(allRevFolder)
+			this.restoreGitRepository()
+		}	catch(java.lang.NullPointerException i){
+			println "ERROR: " + i
+			// reseting
+			this.deleteFiles(allRevFolder)
+			this.restoreGitRepository()
 		} finally {
 			// closing git repository
 			this.git.getRepository().close()
 		}
+	}
+
+	def moveConflictingFiles(parent1, parent2, allConflicts) throws org.eclipse.jgit.api.errors.CheckoutConflictException,
+			org.eclipse.jgit.api.errors.JGitInternalException,
+			org.eclipse.jgit.dircache.InvalidPathException,
+			org.eclipse.jgit.api.errors.RefNotFoundException,
+			java.lang.NullPointerException  {
+				
+		// folder of the revisions being tested
+		def allRevFolder = this.projectsDirectory + this.project.name + "/revisions/rev_" + parent1.substring(0, 5) + "_" + parent2.substring(0, 5)
+		//try{
+		// opening the working directory
+		this.git = openRepository();
+		// git reset --hard SHA1_1
+		this.resetCommand(this.git, parent1)
+		// copy files for parent1 revision
+		def destinationDir = allRevFolder + "/rev_left_" + parent1.substring(0, 5)
+		this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
+		// git clean -f
+		CleanCommand cleanCommandgit = this.git.clean()
+		cleanCommandgit.call()
+		// git checkout -b new SHA1_2
+		def refNew = checkoutAndCreateBranch("new", parent2)
+		// copy files for parent2 revision
+		destinationDir = allRevFolder + "/rev_right_" + parent2.substring(0, 5)
+		this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
+		// git checkout master
+		checkoutMasterBranch()
+		// git merge new
+		MergeCommand mergeCommand = this.git.merge()
+		mergeCommand.include(refNew)
+		MergeResult res = mergeCommand.call()
+		if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
+			// git reset --hard BASE
+			def revBase = (res.getBase().toString()).split()[1]
+			this.resetCommand(this.git, revBase)
+			// copy files for base revision
+			destinationDir = allRevFolder + "/rev_base_" + revBase.substring(0, 5)
+			this.copyFiles(this.repositoryDir, destinationDir, allConflicts)
+			// the input revisions listed in a file
+			this.writeRevisionsFile(parent1.substring(0, 5), parent2.substring(0, 5), revBase.substring(0, 5), allRevFolder)
+		}
+		// avoiding references issues
+		this.deleteBranch("new")
+
+		// reseting number of tries
+		this.ERROR = 0;
+
+		CONFLICTS = CONFLICTS + 1
 	}
 
 	def countConflicts(parent1, parent2){
@@ -293,15 +323,19 @@ class Extractor {
 			mergeCommand.include(refNew)
 			MergeResult res = mergeCommand.call()
 			if (res.getMergeStatus().equals(MergeResult.MergeStatus.CONFLICTING)){
-				CONFLICTS = CONFLICTS + 1
 				println "Revision Base: " + res.getBase().toString()
 				println "Conflitcts: " + res.getConflicts().toString()
 				printConflicts(res)
 			}
 			// avoiding references issues
 			this.deleteBranch("new")
+
+			// reseting number of tries
+			this.ERROR = 0;
+
+			CONFLICTS = CONFLICTS + 1
 		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
-			this.ERROR = true
+			this.ERROR = this.ERROR + 1;
 			println "ERROR: " + e
 			this.restoreGitRepository()
 			println "Trying again..."
@@ -315,7 +349,7 @@ class Extractor {
 	def printConflicts(MergeResult res) {
 		Map allConflicts = res.getConflicts();
 		def listConflicts = []
-		for (String path : allConflicts.keySet()) {
+		for (String path : allConflicts?.keySet()) {
 			int[][] c = allConflicts.get(path);
 			println "Conflicts in file " + path
 			for (int i = 0; i < c.length; ++i) {
@@ -344,7 +378,8 @@ class Extractor {
 			def folder = it.split("/")
 			def fileName = folder[(folder.size()-1)]
 			if(fileName.contains(".")){
-				def fileExt = fileName.split("\\.")[1]
+				def fileNameSplitted = fileName.split("\\.")
+				def fileExt = fileName.split("\\.")[fileNameSplitted.size() -1]
 				if(canCopy(fileExt)){
 					folder = destinationDir + "/" + (Arrays.copyOfRange(folder, 0, folder.size()-1)).join("/")
 					String file = "**/" + it
@@ -361,7 +396,7 @@ class Extractor {
 
 	def boolean canCopy(String fileName){
 		boolean can = false
-		if(fileName.equals("java") || fileName.equals("py") || fileName.equals("cs")){
+		if(fileName.equalsIgnoreCase("java") || fileName.equalsIgnoreCase("py") || fileName.equalsIgnoreCase("cs")){
 			can = true
 		}
 		return can
@@ -394,7 +429,7 @@ class Extractor {
 		println "Setupping..."
 		// keeping a backup dir
 		this.openRepository()
-		new AntBuilder().copy(todir:"C:/GGTS/ggts-bundle/workspace/others/git clonestemp/"+this.project.name+"/git") {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
+		new AntBuilder().copy(todir:this.tempdir) {fileset(dir: this.projectsDirectory+this.project.name+"/git", defaultExcludes: false){}}
 		println "----------------------"
 	}
 
@@ -403,7 +438,7 @@ class Extractor {
 		this.git.getRepository().close()
 		// restoring the backup dir
 		new File(this.projectsDirectory+this.project.name+"/git").deleteDir()
-		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:"C:/GGTS/ggts-bundle/workspace/others/git clones/temp/"+this.project.name+"/git" , defaultExcludes: false){}}
+		new AntBuilder().copy(todir:this.projectsDirectory+this.project.name+"/git") {fileset(dir:this.tempdir , defaultExcludes: false){}}
 	}
 
 	def extractCommits(){
@@ -411,24 +446,28 @@ class Extractor {
 		Iterator ite = this.listMergeCommit.iterator()
 		MergeCommit mc = null
 		while(ite.hasNext()){
-			if(!this.ERROR){
+			if(this.canProceed()){
 				mc = (MergeCommit)ite.next()
 				println ("Running " + iterationCounter + "/" + this.listMergeCommit.size())
-			} else {
-				this.ERROR = false;
+				this.ERROR = 0;
 			}
 
 			// the commits to checkout
 			def SHA_1 = mc.parent1
 			def SHA_2 = mc.parent2
+			println ("SHA's [MergeCommit= " + mc.sha 	+ " , Parent1=" + mc.parent1 + " , Parent2=" + mc.parent2 +  "]")
 			this.downloadOnlyConflicting(SHA_1, SHA_2)
 
-			if(!this.ERROR){
+			if(this.canProceed()){
 				println "----------------------"
 				iterationCounter++
 			}
 		}
 		println ("Number of conflicts: " + CONFLICTS)
+	}
+
+	def private canProceed(){
+		return this.ERROR == 0 || this.ERROR == NUM_MAX_TRIES
 	}
 
 	static void main (String[] args){
@@ -449,5 +488,7 @@ class Extractor {
 		//
 		//		Extractor ex = new Extractor(p)
 		//		//ex.extractCommits()
+		
+		//new AntBuilder().copy(todir:"C:/Vbox/FSTMerge/examples") {fileset(dir:"C:/GGTS/ggts-bundle/workspace/others/git clones/" , defaultExcludes: false){}}
 	}
 }
