@@ -26,7 +26,7 @@ class RecursiveFileList {
 				if(!(filePath.endsWith(".java") || filePath.endsWith(".py") || filePath.endsWith(".cs"))){
 					
 					if(files[i].delete()){
-    			println(files[i].getName() + " is deleted!");
+    			//println(files[i].getName() + " is deleted!");
     		}else{
     			println(files[i].getName() + " delete operation has failed.");
     		}

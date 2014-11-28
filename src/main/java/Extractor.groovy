@@ -40,6 +40,7 @@ class Extractor {
 
 	// signal of error execution
 	private def ERROR
+	final int NUM_MAX_TRIES = 5
 	
 	private ArrayList<String> missingUnknown
 
@@ -50,7 +51,7 @@ class Extractor {
 		this.projectsDirectory	= projectsDirectory + File.separator
 		this.repositoryDir		= this.projectsDirectory + this.project.name + "/git"
 		this.CONFLICTS 			= 0
-		this.ERROR				= false
+		this.ERROR				= 0
 		this.missingUnknown = new ArrayList<MergeCommit>()
 		this.removeOldRevisionFile()
 		
@@ -116,11 +117,12 @@ class Extractor {
 	}
 
 	def Ref checkoutAndCreateBranch(String branchName, String commit){
+		//this.deleteBranch(branchName)
 		ChkoutCmd chkcmd = new ChkoutCmd(this.git.getRepository());
 		chkcmd.setName(branchName)
 		chkcmd.setStartPoint(commit)
 		chkcmd.setCreateBranch(true)
-		chkcmd.setForce(true);
+		chkcmd.setForce(true)
 		Ref checkoutResult = chkcmd.call()
 		println "Checked out and created branch sucessfully: " + checkoutResult.getName()
 
@@ -453,13 +455,13 @@ class Extractor {
 		Iterator ite = this.listMergeCommit.iterator()
 		MergeCommit mc = null
 		while(ite.hasNext()){
-			if(!this.ERROR){
+			if(this.canProceed()){
 				mc = (MergeCommit)ite.next()
 				println ("Running " + iterationCounter + "/" + this.listMergeCommit.size())
-			} else {
-				this.ERROR = false;
-			}
-
+				this.ERROR = 0;
+				
+			} 
+			
 			// the commits to checkout
 			def SHA_1 = mc.parent1
 			def SHA_2 = mc.parent2
@@ -476,17 +478,19 @@ class Extractor {
 				}else{
 				println('commit sha:' + mc.getSha() + ' returned null on common ancestor search.')
 				}
-			
-			
-			
 			//endif
+
 			
-			if(!this.ERROR){
+			if(this.canProceed()){
 				println "----------------------"
 				iterationCounter++
 			}
 		}
-		println ("Number of conflicts: " + CONFLICTS)
+		
+	}
+	
+	def private canProceed(){
+		return this.ERROR == 0 || this.ERROR == NUM_MAX_TRIES
 	}
 	
 	
@@ -511,7 +515,7 @@ class Extractor {
 			cleanCommandgit.call()
 			
 			// git checkout -b new SHA1_2
-			def refNew = checkoutAndCreateBranch("new", parent2)
+			def refNew = checkoutAndCreateBranch("parent2", parent2)
 			// copy files for parent2 revision
 			destinationDir = allRevFolder + "/rev_right_" + parent2.substring(0, 5)
 			def excludeDir	   = "**/" + allRevFolder + "/**"
@@ -541,7 +545,8 @@ class Extractor {
 			// avoiding references issues
 			checkoutMasterBranch()
 			this.deleteBranch("ancestor")
-			this.deleteBranch("new")
+			this.deleteBranch("parent2")
+			
 			
 		} catch(org.eclipse.jgit.api.errors.CheckoutConflictException e){
 			this.ERROR = true
