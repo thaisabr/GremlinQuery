@@ -2,6 +2,7 @@ import org.eclipse.jgit.api.CleanCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.MergeCommand
 import org.eclipse.jgit.api.MergeResult
+import org.eclipse.jgit.api.RenameBranchCommand
 import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.lib.Ref
