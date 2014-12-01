@@ -23,7 +23,7 @@ class RecursiveFileList {
 				
 				String filePath = files[i].getAbsolutePath()
 				
-				if(!(filePath.endsWith(".java") || filePath.endsWith(".py") || filePath.endsWith(".cs"))){
+				if(!(filePath.endsWith(".java"))){
 					
 					if(files[i].delete()){
     			//println(files[i].getName() + " is deleted!");
