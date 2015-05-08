@@ -1,3 +1,5 @@
+package search
+
 import com.tinkerpop.blueprints.*
 import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph
 import com.tinkerpop.gremlin.groovy.Gremlin

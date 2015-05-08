@@ -1,3 +1,5 @@
+package search
+
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVPrinter
 
