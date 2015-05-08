@@ -14,7 +14,7 @@ class CommitsQuery {
         graph = new Neo4jGraph(path)
     }
 
-    public List search(List keywords){
+    public List searchByComment(List keywords){
         def result = graph.V.filter{it._type == "COMMIT"}
         def commits = []
 
@@ -28,7 +28,33 @@ class CommitsQuery {
             }
         }
 
-        return commits.sort{ it.date }
+        commits.sort{ it.date }
+    }
+
+    public List searchByFile(List<String> filenames){
+        def result = []
+        filenames.each{ filename ->
+            result += searchByFile(filename)
+        }
+        (result as Set) as List
+    }
+
+    public List searchByFile(String filename){
+        def result = graph.V.filter{it._type == "COMMIT"}
+        def commits = []
+
+        result.each{ r ->
+            def files = []
+            r.out('CHANGED').token.fill(files)
+
+            if( files.any{it.contains(filename)} ) {
+                def authors = []
+                r.out('AUTHOR').out('NAME').name.fill(authors)
+                commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+            }
+        }
+
+        commits.sort{ it.date }
     }
 
 }
