@@ -7,12 +7,14 @@ class Printer {
 
     static filename = "commits.csv"
 
-	public static void writeCSV(List listMC){
+	public static void writeCSV(List commits){
         File csv = new File(filename)
         csv.withWriterAppend{ out ->
-            CSVFormat csvFileFormat = CSVFormat.TDF.withHeader("Hash", "Message", "Files", "Author", "Date")
-            CSVPrinter csvFilePrinter = new CSVPrinter(out, csvFileFormat)
-            csvFilePrinter.printRecord(listMC)
+            CSVPrinter csvFilePrinter = new CSVPrinter(out, CSVFormat.DEFAULT.withDelimiter('*' as char))
+            csvFilePrinter.printRecord("Hash","Message","Files","Author","Date")
+            commits.each { commit ->
+                csvFilePrinter.printRecord(commit)
+            }
         }
     }
 

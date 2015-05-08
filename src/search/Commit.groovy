@@ -11,7 +11,7 @@ class Commit {
     String date
 
     public String toString(){
-         "hash:$hash, message:$message, files:$files, author:$author, date:$date"
+         "$hash*$message*$files*$author*$date"
     }
 
 }
