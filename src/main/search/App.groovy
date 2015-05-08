@@ -3,7 +3,7 @@ class App {
 
 	public static void main (String[] args){
         CommitsQuery cq = new CommitsQuery("C:\\Users\\Thaís\\Documents\\Repos para minerar\\tmp\\graph.db")
-        def commits = cq.search(["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"])
+        def commits = cq.searchByComment(["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"])
         commits.each{
             println it.properties
         }
