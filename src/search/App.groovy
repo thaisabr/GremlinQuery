@@ -10,11 +10,11 @@ class App {
         Printer.writeCSV(result)
 
         //search only by comment
-        /*result = cq.searchByComment()
+        /*def result = cq.searchByComment()
         Printer.writeCSV(result)*/
 
         //search only by files
-        /*result = cq.searchByFiles()
+        /*def result = cq.searchByFiles()
         Printer.writeCSV(result)*/
 
         println('Finished!')
