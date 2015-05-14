@@ -3,19 +3,20 @@ package search
 class App {
 
 	public static void main (String[] args){
-        def config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
-        CommitsQuery cq = new CommitsQuery(config.bd.path)
+        CommitsQuery cq = new CommitsQuery()
 
-        def commitsByComments = cq.searchByComment(config.mining.keywords)
-        println "Result size: ${commitsByComments.size()}"
+        //search by comment and files
+        def result = cq.search()
+        Printer.writeCSV(result)
 
-        def commitsByFile = cq.searchByFile(config.mining.files)
-        println "Result by files size: ${commitsByFile.size()}"
+        //search only by comment
+        /*result = cq.searchByComment()
+        Printer.writeCSV(result)*/
 
-        def finalResult = (commitsByComments + commitsByFile) as Set
-        println "Final result size: ${commitsByFile.size()}"
-        Printer.writeCSV(finalResult as List)
+        //search only by files
+        /*result = cq.searchByFiles()
+        Printer.writeCSV(result)*/
+
         println('Finished!')
-
 	}
 }
