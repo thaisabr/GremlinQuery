@@ -1,19 +1,20 @@
 package search
 
 import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVPrinter
+import org.apache.commons.csv.CSVRecord
 
 class Printer {
 
-    static filename = "commits.csv"
+    static COMMITS_FILENAME = "commits.csv"
 
-	public static void writeCSV(List commits){
-        File csv = new File(filename)
-        csv.withWriterAppend{ out ->
+    public static void writeCSV(def commits){
+        File csv = new File(COMMITS_FILENAME)
+        csv.withWriterAppend("UTF-16"){ out ->
             CSVPrinter csvFilePrinter = new CSVPrinter(out, CSVFormat.DEFAULT.withDelimiter('*' as char))
-            csvFilePrinter.printRecord("Hash","Message","Files","Author","Date")
             commits.each { commit ->
-                csvFilePrinter.printRecord(commit)
+                csvFilePrinter.printRecord(commit.toString())
             }
         }
     }
