@@ -10,35 +10,65 @@ import com.tinkerpop.gremlin.groovy.Gremlin
 class CommitsQuery {
 
     Graph graph
+    static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
 
-    public CommitsQuery(String path){
+    public CommitsQuery(){
         Gremlin.load()
-        graph = new Neo4jGraph(path)
+        graph = new Neo4jGraph(config.path)
     }
 
-    public List searchByComment(List keywords){
+    private static List getChangedProductionFiles(List files){
+        if(!files || files.empty) return []
+        def rejectedFiles = files.findAll{ file ->
+            (config.exclude).any{ file.contains(it) }
+        }
+        files -= rejectedFiles
+        return files
+    }
+
+    public List search(){
+        def commitsByComments = searchByComment()
+        println "Total commits by comments: ${commitsByComments.size()}"
+
+        def commitsByFile = searchByFiles()
+        println "Total commits by files: ${commitsByFile.size()}"
+
+        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
+        println "Total commits: ${finalResult.size()}"
+
+        finalResult*.files.eachWithIndex{ v, index ->
+            println "$index: $v"
+        }
+        return finalResult
+    }
+
+    public List searchByComment(){
         def result = graph.V.filter{it._type == "COMMIT"}
         def commits = []
 
         result.each{ r ->
-            if( keywords.any{r.message.contains(it)} ) {
-                def authors = []
-                r.out('AUTHOR').out('NAME').name.fill(authors)
+            if( config.keywords?.any{r.message.contains(it)} ) {
                 def files = []
                 r.out('CHANGED').token.fill(files)
-                commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+                files = getChangedProductionFiles(files)
+
+                if(!files.isEmpty()){
+                    def authors = []
+                    r.out('AUTHOR').out('NAME').name.fill(authors)
+                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+                }
             }
         }
 
-        commits.sort{ it.date }
+       return commits.sort{ it.date }
     }
 
-    public List searchByFile(List<String> filenames){
+    public List searchByFiles(){
         def result = []
-        filenames.each{ filename ->
+        config.files?.each{ filename ->
             result += searchByFile(filename)
         }
-        (result as Set) as List
+        return result
     }
 
     public List searchByFile(String filename){
@@ -50,13 +80,17 @@ class CommitsQuery {
             r.out('CHANGED').token.fill(files)
 
             if( files.any{it.contains(filename)} ) {
-                def authors = []
-                r.out('AUTHOR').out('NAME').name.fill(authors)
-                commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+                files = getChangedProductionFiles(files)
+
+                if(!files.isEmpty()){
+                    def authors = []
+                    r.out('AUTHOR').out('NAME').name.fill(authors)
+                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+                }
             }
         }
 
-        commits.sort{ it.date }
+        return commits.sort{ it.date }
     }
 
 }
