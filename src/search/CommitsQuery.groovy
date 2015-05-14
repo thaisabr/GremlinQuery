@@ -36,9 +36,6 @@ class CommitsQuery {
         def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
         println "Total commits: ${finalResult.size()}"
 
-        finalResult*.files.eachWithIndex{ v, index ->
-            println "$index: $v"
-        }
         return finalResult
     }
 
