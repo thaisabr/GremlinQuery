@@ -6,12 +6,12 @@ class Commit {
 
     String hash
     String message
-    ArrayList<String> files
+    List files
     String author
     String date
 
     public String toString(){
-         "$hash*$message*$files*$author*$date"
+         "$hash*${message.replaceAll("[\n\r]",";")}*${files.toListString()}*$author*$date"
     }
 
 }
