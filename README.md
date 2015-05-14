@@ -4,7 +4,7 @@ GremlinQuery
 GremlinQuery is a groovy project that uses Gremlin Graph Traversal language to query a Neo4j database 
 which contains metadata about project repositories hosted at github. It takes as input the directory 
 path to the graph database and outputs a list of commits whose comments contain some keyword set. 
-The output list is structured in the following manner: Hash, Message, Files, Author, Date
+The output list is structured in the following manner: Hash, Date, Author, Message, Files. 
 
 Currently, the project saves the output list in a .csv file.
 To run this project, you need the following instructions:
