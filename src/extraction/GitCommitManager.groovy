@@ -52,12 +52,14 @@ class GitCommitManager {
         return diff
     }
 
-    private void showDiff(String filename, DiffEntry entry){
+    private void showDiff(DiffEntry entry){
         if( !(entry.changeType in [DiffEntry.ChangeType.ADD, DiffEntry.ChangeType.MODIFY])) return
-        println "File: $filename; Change type: ${entry.changeType}"
-        DiffFormatter formatter = new DiffFormatter(System.out)
+        println "File: ${entry.newPath}; Change type: ${entry.changeType}"
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        DiffFormatter formatter = new DiffFormatter(stream)
         formatter.setRepository(repository)
         formatter.format(entry)
+        println stream
     }
 
     private generateTreeWalk(RevTree tree, String filename){
@@ -110,18 +112,11 @@ class GitCommitManager {
     def showAllChangesFromCommit(String sha){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name) //se for merge, vai ter mais de um pai?
-
         CanonicalTreeParser newTreeIter = getTreeParser(commit)
         CanonicalTreeParser oldTreeIter = getTreeParser(parent)
 
         List<DiffEntry> diffs = getDiff(newTreeIter, oldTreeIter)
-        diffs.each{ entry ->
-            println "Entry: $entry"
-            DiffFormatter formatter = new DiffFormatter(System.out)
-            formatter.setRepository(repository)
-            formatter.format(entry)
-        }
-
+        diffs.each{ showDiff(it) }
     }
 
     def showChanges(String sha, List changedFiles){
@@ -132,11 +127,9 @@ class GitCommitManager {
 
         changedFiles.each{ file ->
             List<DiffEntry> diff = getDiffFromFile(file, newTreeParser, oldTreeParser)
-            diff.each { entry ->
-                showDiff(file, entry)
-            }
+            diff.each { showDiff(it) }
 
-            println "<CURRENT VERSION>"
+            println "<NEW VERSION>"
             showFileLinesContent(commit, file)
 
             println "<PARENT VERSION>"
@@ -168,4 +161,10 @@ class GitCommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
+    /*
+   * eu preciso de um método para identificar as linhas alteradas em um commit.
+   * daí, usando um parser, eu devo identificar o significado das alterações (alterou qual método, construtor, atributo)?
+   * daí, joga essa resultado no formato de interface.
+   * vi um comando whatchanged, mas acho que não é oficial... salvei na barra de ferramentas para investigar
+   * */
 }
