@@ -61,6 +61,35 @@ class GitCommitManager {
         formatter.format(entry)
     }
 
+    private static getLines(Repository repository, ObjectId commitID, String name) {
+        RevWalk revWalk = new RevWalk(repository)
+        RevCommit commit = revWalk.parseCommit(commitID)
+        RevTree tree = commit.getTree()
+
+        TreeWalk treeWalk = new TreeWalk(repository)
+        treeWalk.addTree(tree)
+        treeWalk.setRecursive(true)
+        treeWalk.setFilter(PathFilter.create(name))
+        if (!treeWalk.next()) {
+            throw new IllegalStateException("Did not find expected file $name")
+        }
+
+        ObjectId objectId = treeWalk.getObjectId(0)
+        ObjectLoader loader = repository.open(objectId)
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        loader.copyTo(stream)
+        revWalk.dispose()
+
+        return stream.toString().readLines()
+    }
+
+    private RevCommit extractCommit(String sha){
+        RevWalk walk = new RevWalk(repository)
+        ObjectId id = repository.resolve(sha)
+        walk.parseCommit(id)
+    }
+
     def showCommitsHistory(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()
@@ -70,12 +99,6 @@ class GitCommitManager {
             count++
         }
         println "Had $count commits overall on current branch"
-    }
-
-    public RevCommit extractCommit(String sha){
-        RevWalk walk = new RevWalk(repository)
-        ObjectId id = repository.resolve(sha)
-        walk.parseCommit(id)
     }
 
     def showAllChangesFromCommit(String sha){
@@ -148,29 +171,6 @@ class GitCommitManager {
             println "Line $i(${commit.name}): $line"
         }
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
-    }
-
-    private static getLines(Repository repository, ObjectId commitID, String name) {
-        RevWalk revWalk = new RevWalk(repository)
-        RevCommit commit = revWalk.parseCommit(commitID)
-        RevTree tree = commit.getTree()
-
-        TreeWalk treeWalk = new TreeWalk(repository)
-        treeWalk.addTree(tree)
-        treeWalk.setRecursive(true)
-        treeWalk.setFilter(PathFilter.create(name))
-        if (!treeWalk.next()) {
-            throw new IllegalStateException("Did not find expected file $name")
-        }
-
-        ObjectId objectId = treeWalk.getObjectId(0)
-        ObjectLoader loader = repository.open(objectId)
-
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()
-        loader.copyTo(stream)
-        revWalk.dispose()
-
-        return stream.toString().readLines()
     }
 
 }
