@@ -1,6 +1,8 @@
 package extraction
 
+import org.eclipse.jgit.api.BlameCommand
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.blame.BlameResult
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.lib.ObjectId
@@ -8,6 +10,7 @@ import org.eclipse.jgit.lib.ObjectLoader
 import org.eclipse.jgit.lib.ObjectReader
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
@@ -51,6 +54,7 @@ class GitCommitManager {
     }
 
     private void showDiff(String filename, DiffEntry entry){
+        if( !(entry.changeType in [DiffEntry.ChangeType.ADD, DiffEntry.ChangeType.MODIFY])) return
         println "File: $filename; Change type: ${entry.changeType}"
         DiffFormatter formatter = new DiffFormatter(System.out)
         formatter.setRepository(repository)
@@ -104,10 +108,10 @@ class GitCommitManager {
             }
 
             println "<CURRENT VERSION>"
-            showFileContent(commit, file)
+            println "LINES: ${showFileContent(commit, file)}"
 
             println "<PARENT VERSION>"
-            showFileContent(parent, file)
+            println "LINES: ${showFileContent(parent, file)}"
         }
     }
 
@@ -127,7 +131,46 @@ class GitCommitManager {
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream()
         loader.copyTo(stream)
-        println "LINES: ${stream.toString().readLines().size()}"
+        return stream.toString().readLines().size()
+    }
+
+    //show file history by line
+    def showChangedLines(String filename){
+        BlameCommand blamer = new BlameCommand(repository)
+        ObjectId commitID = repository.resolve("HEAD")
+        blamer.setStartCommit(commitID)
+        blamer.setFilePath(filename)
+        BlameResult blame = blamer.call()
+
+        def lines = getLines(repository, commitID, filename)
+        lines.eachWithIndex{ line, i ->
+            RevCommit commit = blame.getSourceCommit(i)
+            println "Line $i(${commit.name}): $line"
+        }
+        println "Displayed commits responsible for ${lines.size()} lines of $filename"
+    }
+
+    private static getLines(Repository repository, ObjectId commitID, String name) {
+        RevWalk revWalk = new RevWalk(repository)
+        RevCommit commit = revWalk.parseCommit(commitID)
+        RevTree tree = commit.getTree()
+
+        TreeWalk treeWalk = new TreeWalk(repository)
+        treeWalk.addTree(tree)
+        treeWalk.setRecursive(true)
+        treeWalk.setFilter(PathFilter.create(name))
+        if (!treeWalk.next()) {
+            throw new IllegalStateException("Did not find expected file $name")
+        }
+
+        ObjectId objectId = treeWalk.getObjectId(0)
+        ObjectLoader loader = repository.open(objectId)
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        loader.copyTo(stream)
+        revWalk.dispose()
+
+        return stream.toString().readLines()
     }
 
 }
