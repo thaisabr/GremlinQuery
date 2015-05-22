@@ -39,7 +39,6 @@ class GitCommitManager {
         List<DiffEntry> diff = new Git(repository).diff()
                 .setOldTree(oldTree)
                 .setNewTree(newTree)
-                .setPathFilter(PathFilter.create(filename))
                 .call()
         return diff
     }
@@ -61,26 +60,33 @@ class GitCommitManager {
         formatter.format(entry)
     }
 
-    private static getLines(Repository repository, ObjectId commitID, String name) {
-        RevWalk revWalk = new RevWalk(repository)
-        RevCommit commit = revWalk.parseCommit(commitID)
-        RevTree tree = commit.getTree()
-
+    private generateTreeWalk(RevTree tree, String filename){
         TreeWalk treeWalk = new TreeWalk(repository)
         treeWalk.addTree(tree)
         treeWalk.setRecursive(true)
-        treeWalk.setFilter(PathFilter.create(name))
-        if (!treeWalk.next()) {
-            throw new IllegalStateException("Did not find expected file $name")
-        }
+        treeWalk.setFilter(PathFilter.create(filename))
+        treeWalk.next()
+        return treeWalk
+    }
 
+    private getFileLinesContent(ObjectId commitID, String filename) {
+        RevWalk revWalk = new RevWalk(repository)
+        RevCommit commit = revWalk.parseCommit(commitID)
+        TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
         ObjectId objectId = treeWalk.getObjectId(0)
         ObjectLoader loader = repository.open(objectId)
-
         ByteArrayOutputStream stream = new ByteArrayOutputStream()
         loader.copyTo(stream)
         revWalk.dispose()
+        return stream.toString().readLines()
+    }
 
+    private getFileLinesContent(RevCommit commit, String filename){
+        TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
+        ObjectId objectId = treeWalk.getObjectId(0)
+        ObjectLoader loader = repository.open(objectId)
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()
+        loader.copyTo(stream)
         return stream.toString().readLines()
     }
 
@@ -95,7 +101,7 @@ class GitCommitManager {
         Iterable<RevCommit> logs = git.log().call()
         int count = 0
         logs.each { rev ->
-            println "Commit: $rev, name: ${rev.getName()}, id: ${rev.getId().getName()}"
+            println "Commit: $rev, name: ${rev.getName()}"
             count++
         }
         println "Had $count commits overall on current branch"
@@ -131,30 +137,19 @@ class GitCommitManager {
             }
 
             println "<CURRENT VERSION>"
-            println "LINES: ${showFileContent(commit, file)}"
+            showFileLinesContent(commit, file)
 
             println "<PARENT VERSION>"
-            println "LINES: ${showFileContent(parent, file)}"
+            showFileLinesContent(parent, file)
         }
     }
 
-    def showFileContent(RevCommit commit, String fileName){
-        TreeWalk treeWalk = new TreeWalk(repository)
-        treeWalk.addTree(commit.tree)
-        treeWalk.setRecursive(true)
-        treeWalk.setFilter(PathFilter.create(fileName))
-
-        if (!treeWalk.next()) {
-            throw new IllegalStateException("Did not find expected file $fileName")
+    def showFileLinesContent(RevCommit commit, String file){
+        def commitLines = getFileLinesContent(commit, file)
+        println "LINES: ${commitLines.size()}"
+        commitLines.each{ line ->
+            println line
         }
-
-        ObjectId objectId = treeWalk.getObjectId(0)
-        ObjectLoader loader = repository.open(objectId)
-        loader.copyTo(System.out)
-
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()
-        loader.copyTo(stream)
-        return stream.toString().readLines().size()
     }
 
     //show file history by line
@@ -165,7 +160,7 @@ class GitCommitManager {
         blamer.setFilePath(filename)
         BlameResult blame = blamer.call()
 
-        def lines = getLines(repository, commitID, filename)
+        def lines = getFileLinesContent(commitID, filename)
         lines.eachWithIndex{ line, i ->
             RevCommit commit = blame.getSourceCommit(i)
             println "Line $i(${commit.name}): $line"
