@@ -16,6 +16,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
+import search.Commit
 
 class GitCommitManager {
 
@@ -33,6 +34,13 @@ class GitCommitManager {
         CanonicalTreeParser tree = new CanonicalTreeParser()
         tree.reset(reader, commit.tree)
         return tree
+    }
+
+    private List<DiffEntry> getDiff(CanonicalTreeParser newTree){
+        List<DiffEntry> diff = new Git(repository).diff()
+                .setNewTree(newTree)
+                .call()
+        return diff
     }
 
     private List<DiffEntry> getDiff(CanonicalTreeParser newTree, CanonicalTreeParser oldTree){
@@ -117,6 +125,7 @@ class GitCommitManager {
 
         List<DiffEntry> diffs = getDiff(newTreeIter, oldTreeIter)
         diffs.each{ showDiff(it) }
+        return diffs
     }
 
     def showChanges(String sha, List changedFiles){
@@ -161,10 +170,79 @@ class GitCommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
-    /*
-   * eu preciso de um método para identificar as linhas alteradas em um commit.
-   * daí, usando um parser, eu devo identificar o significado das alterações (alterou qual método, construtor, atributo)?
-   * daí, joga essa resultado no formato de interface.
-   * vi um comando whatchanged, mas acho que não é oficial... salvei na barra de ferramentas para investigar
-   * */
+    def searchByComment(){
+        Git git = new Git(repository)
+        Iterable<RevCommit> logs = git.log().call()
+        def commits = []
+
+        logs.each{ c ->
+            if( config.keywords?.any{c.shortMessage.contains(it)}){
+                def diffs = getChangedFilesFromCommit(c)
+                commits += new Commit(hash:c.name, message:c.shortMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
+            }
+        }
+
+        return commits.sort{ it.date }
+    }
+
+    def searchByFiles(){
+        def result = []
+        config.files?.each{ filename ->
+            result += searchByFile(filename)
+        }
+        return result
+    }
+
+    List searchByFile(String filename){
+        Git git = new Git(repository)
+        Iterable<RevCommit> logs = git.log().call()
+        def commits = []
+
+        logs.each{  c ->
+            def diffs = getChangedFilesFromCommit(c)
+            if( diffs.any{it.contains(filename)} ){
+                commits += new Commit(hash:c.name, message:c.fullMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
+            }
+        }
+        return commits.sort{ it.date }
+    }
+
+    def getChangedFilesFromCommit(RevCommit commit){
+        CanonicalTreeParser newTreeIter = getTreeParser(commit)
+
+        if(commit.parentCount>0){
+            RevCommit parent = extractCommit(commit.parents[0].name)
+            CanonicalTreeParser oldTreeIter = getTreeParser(parent)
+            return getDiff(newTreeIter, oldTreeIter)*.newPath
+        }
+
+        else return getDiff(newTreeIter)*.newPath
+    }
+
+    public List search(){
+        def commitsByComments = searchByComment()
+        println "Total commits by comments: ${commitsByComments.size()}"
+
+        def commitsByFile = searchByFiles()
+        println "Total commits by files: ${commitsByFile.size()}"
+
+        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
+        println "Total commits: ${finalResult.size()}"
+
+        return finalResult
+    }
+
+    def searchAllCommits(){
+        Git git = new Git(repository)
+        Iterable<RevCommit> logs = git.log().call()
+        def commits = []
+
+        logs.each{ c ->
+            def diffs = getChangedFilesFromCommit(c)
+            commits += new Commit(hash:c.name, message:c.shortMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
+        }
+
+        return commits.sort{ it.date }
+    }
+
 }
