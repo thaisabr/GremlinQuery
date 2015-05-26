@@ -5,6 +5,8 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.blame.BlameResult
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
+import org.eclipse.jgit.diff.RawTextComparator
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.ObjectLoader
 import org.eclipse.jgit.lib.ObjectReader
@@ -30,25 +32,19 @@ class GitCommitManager {
         reader = repository.newObjectReader()
     }
 
-    private CanonicalTreeParser getTreeParser(RevCommit commit){
+    private CanonicalTreeParser getCanonicalTreeParser(RevCommit commit){
         CanonicalTreeParser tree = new CanonicalTreeParser()
         tree.reset(reader, commit.tree)
         return tree
     }
 
-    private List<DiffEntry> getDiff(CanonicalTreeParser newTree){
-        List<DiffEntry> diff = new Git(repository).diff()
-                .setNewTree(newTree)
-                .call()
-        return diff
-    }
-
-    private List<DiffEntry> getDiff(CanonicalTreeParser newTree, CanonicalTreeParser oldTree){
-        List<DiffEntry> diff = new Git(repository).diff()
-                .setOldTree(oldTree)
-                .setNewTree(newTree)
-                .call()
-        return diff
+    private List<DiffEntry> getDiff(RevTree newTree, RevTree oldTree){
+        DiffFormatter df = new DiffFormatter(new ByteArrayOutputStream())
+        df.setRepository(repository)
+        df.setDiffComparator(RawTextComparator.DEFAULT)
+        df.setDetectRenames(true)
+        List<DiffEntry> diffs = df.scan(oldTree, newTree)
+        return diffs
     }
 
     private List<DiffEntry> getDiffFromFile(String filename, CanonicalTreeParser newTree, CanonicalTreeParser oldTree){
@@ -120,10 +116,7 @@ class GitCommitManager {
     List showAllChangesFromCommit(String sha){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name) //se for merge, vai ter mais de um pai?
-        CanonicalTreeParser newTreeIter = getTreeParser(commit)
-        CanonicalTreeParser oldTreeIter = getTreeParser(parent)
-
-        List<DiffEntry> diffs = getDiff(newTreeIter, oldTreeIter)
+        List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
         diffs.each{ showDiff(it) }
         return diffs
     }
@@ -131,8 +124,8 @@ class GitCommitManager {
     def showChanges(String sha, List changedFiles){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name)
-        CanonicalTreeParser newTreeParser = getTreeParser(commit)
-        CanonicalTreeParser oldTreeParser = getTreeParser(parent)
+        CanonicalTreeParser newTreeParser = getCanonicalTreeParser(commit)
+        CanonicalTreeParser oldTreeParser = getCanonicalTreeParser(parent)
 
         changedFiles.each{ file ->
             List<DiffEntry> diff = getDiffFromFile(file, newTreeParser, oldTreeParser)
@@ -176,9 +169,11 @@ class GitCommitManager {
         def commits = []
 
         logs.each{ c ->
-            if( config.keywords?.any{c.shortMessage.contains(it)}){
-                def diffs = getChangedFilesFromCommit(c)
-                commits += new Commit(hash:c.name, message:c.shortMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
+            if( config.keywords?.any{c.fullMessage.contains(it)}){
+                def files = getChangedFilesFromCommit(c)
+                if(!files.empty) {
+                    commits += new Commit(hash: c.name, message: c.fullMessage, files: files, author: c.authorIdent.name, date: c.commitTime)
+                }
             }
         }
 
@@ -186,37 +181,36 @@ class GitCommitManager {
     }
 
     List searchByFiles(){
-        def result = []
-        config.files?.each{ filename ->
-            result += searchByFile(filename)
-        }
-        return result
+        List<Commit> commits = searchAllCommits()
+        def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
+        return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
-    List searchByFile(String filename){
-        Git git = new Git(repository)
-        Iterable<RevCommit> logs = git.log().call()
-        def commits = []
-
-        logs.each{  c ->
-            def diffs = getChangedFilesFromCommit(c)
-            if( diffs.any{it.contains(filename)} ){
-                commits += new Commit(hash:c.name, message:c.fullMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
-            }
+    private static List getChangedProductionFiles(List<DiffEntry> diffs){
+        if(!diffs || diffs.empty) return []
+        def rejectedFiles = diffs.findAll{ entry ->
+            entry.newPath.equals(DiffEntry.DEV_NULL) || (config.exclude).any{ entry.newPath.contains(it) }
         }
-        return commits.sort{ it.date }
+        diffs -= rejectedFiles
+        return diffs
     }
 
-    def getChangedFilesFromCommit(RevCommit commit){
-        CanonicalTreeParser newTreeIter = getTreeParser(commit)
+    List getChangedFilesFromCommit(RevCommit commit){
+        RevCommit parent
 
-        if(commit.parentCount>0){
-            RevCommit parent = extractCommit(commit.parents[0].name)
-            CanonicalTreeParser oldTreeIter = getTreeParser(parent)
-            return getDiff(newTreeIter, oldTreeIter)*.newPath
+        if(commit.parentCount>0) {
+            parent = extractCommit(commit.parents[0].name)
+
+        }
+        else{
+            ObjectId head = repository.resolve(Constants.HEAD)
+            RevWalk revWalk = new RevWalk(repository)
+            parent = revWalk.parseCommit(head)
+            revWalk.dispose()
         }
 
-        else return getDiff(newTreeIter)*.newPath
+        List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
+        return getChangedProductionFiles(diffs)*.newPath
     }
 
     List search(){
@@ -238,8 +232,8 @@ class GitCommitManager {
         def commits = []
 
         logs.each{ c ->
-            def diffs = getChangedFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.shortMessage, files:diffs, author:c.authorIdent.name, date:c.commitTime)
+            def files = getChangedFilesFromCommit(c)
+            commits += new Commit(hash:c.name, message:c.fullMessage, files:files, author:c.authorIdent.name, date:c.commitTime)
         }
 
         return commits.sort{ it.date }
