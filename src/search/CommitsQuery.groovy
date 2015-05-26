@@ -57,34 +57,10 @@ class CommitsQuery {
        return commits.sort{ it.date }
     }
 
-    public List searchByFiles(){
-        def result = []
-        config.files?.each{ filename ->
-            result += searchByFile(filename)
-        }
-        return result
-    }
-
-    public List searchByFile(String filename){
-        def result = graph.V.filter{it._type == "COMMIT"}
-        def commits = []
-
-        result.each{ r ->
-            def files = []
-            r.out('CHANGED').token.fill(files)
-
-            if( files.any{it.contains(filename)} ) {
-                files = getChangedProductionFiles(files)
-
-                if(!files.isEmpty()){
-                    def authors = []
-                    r.out('AUTHOR').out('NAME').name.fill(authors)
-                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
-                }
-            }
-        }
-
-        return commits.sort{ it.date }
+    List searchByFiles(){
+        List<Commit> commits = searchAllCommits()
+        def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
+        return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
     public searchAllCommits(){
@@ -94,6 +70,7 @@ class CommitsQuery {
         result.each{ r ->
             def files = []
             r.out('CHANGED').token.fill(files)
+            files = files.collect{it-config.prefix}
             def authors = []
             r.out('AUTHOR').out('NAME').name.fill(authors)
             commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
