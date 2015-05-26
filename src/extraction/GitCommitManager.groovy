@@ -117,7 +117,7 @@ class GitCommitManager {
         println "Had $count commits overall on current branch"
     }
 
-    def showAllChangesFromCommit(String sha){
+    List showAllChangesFromCommit(String sha){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name) //se for merge, vai ter mais de um pai?
         CanonicalTreeParser newTreeIter = getTreeParser(commit)
@@ -170,7 +170,7 @@ class GitCommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
-    def searchByComment(){
+    List searchByComment(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()
         def commits = []
@@ -185,7 +185,7 @@ class GitCommitManager {
         return commits.sort{ it.date }
     }
 
-    def searchByFiles(){
+    List searchByFiles(){
         def result = []
         config.files?.each{ filename ->
             result += searchByFile(filename)
@@ -219,7 +219,7 @@ class GitCommitManager {
         else return getDiff(newTreeIter)*.newPath
     }
 
-    public List search(){
+    List search(){
         def commitsByComments = searchByComment()
         println "Total commits by comments: ${commitsByComments.size()}"
 
@@ -232,7 +232,7 @@ class GitCommitManager {
         return finalResult
     }
 
-    def searchAllCommits(){
+    List searchAllCommits(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()
         def commits = []
