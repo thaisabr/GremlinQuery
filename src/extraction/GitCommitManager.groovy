@@ -56,7 +56,7 @@ class GitCommitManager {
         return diff
     }
 
-    private void showDiff(DiffEntry entry){
+    private showDiff(DiffEntry entry){
         if( !(entry.changeType in [DiffEntry.ChangeType.ADD, DiffEntry.ChangeType.MODIFY])) return
         println "File: ${entry.newPath}; Change type: ${entry.changeType}"
         ByteArrayOutputStream stream = new ByteArrayOutputStream()
@@ -66,7 +66,7 @@ class GitCommitManager {
         println stream
     }
 
-    private generateTreeWalk(RevTree tree, String filename){
+    private TreeWalk generateTreeWalk(RevTree tree, String filename){
         TreeWalk treeWalk = new TreeWalk(repository)
         treeWalk.addTree(tree)
         treeWalk.setRecursive(true)
@@ -75,7 +75,7 @@ class GitCommitManager {
         return treeWalk
     }
 
-    private getFileLinesContent(ObjectId commitID, String filename) {
+    private List getFileLinesContent(ObjectId commitID, String filename) {
         RevWalk revWalk = new RevWalk(repository)
         RevCommit commit = revWalk.parseCommit(commitID)
         TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
@@ -87,7 +87,7 @@ class GitCommitManager {
         return stream.toString().readLines()
     }
 
-    private getFileLinesContent(RevCommit commit, String filename){
+    private List getFileLinesContent(RevCommit commit, String filename){
         TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
         ObjectId objectId = treeWalk.getObjectId(0)
         ObjectLoader loader = repository.open(objectId)
@@ -102,15 +102,13 @@ class GitCommitManager {
         walk.parseCommit(id)
     }
 
-    def showCommitsHistory(){
-        Git git = new Git(repository)
-        Iterable<RevCommit> logs = git.log().call()
-        int count = 0
-        logs.each { rev ->
-            println "Commit: $rev, name: ${rev.getName()}"
-            count++
+    private static List getChangedProductionFiles(List<DiffEntry> diffs){
+        if(!diffs || diffs.empty) return []
+        def rejectedFiles = diffs.findAll{ entry ->
+            entry.newPath.equals(DiffEntry.DEV_NULL) || (config.exclude).any{ entry.newPath.contains(it) }
         }
-        println "Had $count commits overall on current branch"
+        diffs -= rejectedFiles
+        return diffs
     }
 
     List showAllChangesFromCommit(String sha){
@@ -121,7 +119,7 @@ class GitCommitManager {
         return diffs
     }
 
-    def showChanges(String sha, List changedFiles){
+    def showChanges(String sha, List<String> changedFiles){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name)
         CanonicalTreeParser newTreeParser = getCanonicalTreeParser(commit)
@@ -150,12 +148,12 @@ class GitCommitManager {
     //show file history by line
     def showChangedLines(String filename){
         BlameCommand blamer = new BlameCommand(repository)
-        ObjectId commitID = repository.resolve("HEAD")
-        blamer.setStartCommit(commitID)
+        ObjectId head = repository.resolve(Constants.HEAD)
+        blamer.setStartCommit(head)
         blamer.setFilePath(filename)
         BlameResult blame = blamer.call()
 
-        def lines = getFileLinesContent(commitID, filename)
+        def lines = getFileLinesContent(head, filename)
         lines.eachWithIndex{ line, i ->
             RevCommit commit = blame.getSourceCommit(i)
             println "Line $i(${commit.name}): $line"
@@ -164,35 +162,17 @@ class GitCommitManager {
     }
 
     List searchByComment(){
-        Git git = new Git(repository)
-        Iterable<RevCommit> logs = git.log().call()
-        def commits = []
-
-        logs.each{ c ->
-            if( config.keywords?.any{c.fullMessage.contains(it)}){
-                def files = getChangedFilesFromCommit(c)
-                if(!files.empty) {
-                    commits += new Commit(hash: c.name, message: c.fullMessage, files: files, author: c.authorIdent.name, date: c.commitTime)
-                }
-            }
+        def commits = searchAllCommits()
+        def result = commits.findAll{ c ->
+            config.keywords?.any{c.message.contains(it)} && !c.files.empty
         }
-
-        return commits.sort{ it.date }
+        return result.sort{ it.date }
     }
 
     List searchByFiles(){
         List<Commit> commits = searchAllCommits()
         def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
         return result.unique{ a,b -> a.hash <=> b.hash }
-    }
-
-    private static List getChangedProductionFiles(List<DiffEntry> diffs){
-        if(!diffs || diffs.empty) return []
-        def rejectedFiles = diffs.findAll{ entry ->
-            entry.newPath.equals(DiffEntry.DEV_NULL) || (config.exclude).any{ entry.newPath.contains(it) }
-        }
-        diffs -= rejectedFiles
-        return diffs
     }
 
     List getChangedFilesFromCommit(RevCommit commit){
