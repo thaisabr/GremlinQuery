@@ -30,11 +30,10 @@ class CommitsQuery {
         return files
     }
 
-    private static List getProductionFilesFromCommit(def node){
-        def files = []
-        node.out('CHANGED').token.fill(files)
-        files = files.collect{it-config.prefix}
-        return getChangedProductionFiles(files)
+    private static List filterProductionFilesFromCommit(List<Commit> commits){
+        commits.each{ commit ->
+            commit.files = getChangedProductionFiles(commit.files)
+        }
     }
 
     private static String getAuthorsFromCommit(def node){
@@ -57,26 +56,18 @@ class CommitsQuery {
     }
 
     public List searchByComment(){
-        def result = graph.V.filter{it._type == "COMMIT"}
-        def commits = []
-
-        result.each{ r ->
-            if( config.keywords?.any{r.message.contains(it)} ) {
-                def files = getProductionFilesFromCommit(r)
-                if(!files.isEmpty()){
-                    def author = getAuthorsFromCommit(r)
-                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:author, date:r.date)
-                }
-            }
+        def commits = searchAllCommits()
+        filterProductionFilesFromCommit(commits)
+        def result = commits.findAll{ commit ->
+            config.keywords?.any{commit.message.contains(it)} && !commit.files.empty
         }
-
-       return commits.sort{ it.date }
+       return result.sort{ it.date }
     }
 
     List searchByFiles(){
-        List<Commit> commits = searchAllCommits()
+        def commits = searchAllCommits()
+        filterProductionFilesFromCommit(commits)
         def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
-        result = result.findAll{ !getChangedProductionFiles(it.files).empty }
         return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
