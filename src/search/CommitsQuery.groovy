@@ -23,6 +23,26 @@ class CommitsQuery {
         return files
     }
 
+    private static List getFilesFromCommit(def node){
+        def files = []
+        node.out('CHANGED').token.fill(files)
+        files = files.collect{it-config.prefix}
+        return files
+    }
+
+    private static List getProductionFilesFromCommit(def node){
+        def files = []
+        node.out('CHANGED').token.fill(files)
+        files = files.collect{it-config.prefix}
+        return getChangedProductionFiles(files)
+    }
+
+    private static String getAuthorsFromCommit(def node){
+        def authors = []
+        node.out('AUTHOR').out('NAME').name.fill(authors)
+        return authors.get(0)
+    }
+
     public List search(){
         def commitsByComments = searchByComment()
         println "Total commits by comments: ${commitsByComments.size()}"
@@ -42,14 +62,10 @@ class CommitsQuery {
 
         result.each{ r ->
             if( config.keywords?.any{r.message.contains(it)} ) {
-                def files = []
-                r.out('CHANGED').token.fill(files)
-                files = getChangedProductionFiles(files)
-
+                def files = getProductionFilesFromCommit(r)
                 if(!files.isEmpty()){
-                    def authors = []
-                    r.out('AUTHOR').out('NAME').name.fill(authors)
-                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+                    def author = getAuthorsFromCommit(r)
+                    commits += new Commit(hash:r.hash, message:r.message, files:files, author:author, date:r.date)
                 }
             }
         }
@@ -60,6 +76,7 @@ class CommitsQuery {
     List searchByFiles(){
         List<Commit> commits = searchAllCommits()
         def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
+        result = result.findAll{ !getChangedProductionFiles(it.files).empty }
         return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
@@ -68,12 +85,9 @@ class CommitsQuery {
         def commits = []
 
         result.each{ r ->
-            def files = []
-            r.out('CHANGED').token.fill(files)
-            files = files.collect{it-config.prefix}
-            def authors = []
-            r.out('AUTHOR').out('NAME').name.fill(authors)
-            commits += new Commit(hash:r.hash, message:r.message, files:files, author:authors.get(0), date:r.date)
+            def files = getFilesFromCommit(r)
+            def author = getAuthorsFromCommit(r)
+            commits += new Commit(hash:r.hash, message:r.message, files:files, author:author, date:r.date)
         }
 
         return commits.sort{ it.date }
