@@ -1,4 +1,4 @@
-package extraction
+package search
 
 import org.eclipse.jgit.api.BlameCommand
 import org.eclipse.jgit.api.Git
@@ -18,15 +18,14 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
-import search.Commit
+import util.Util
 
-class GitCommitManager {
+class JGitManager extends CommitManager {
 
     Repository repository
     ObjectReader reader
-    static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
 
-    public GitCommitManager(){
+    public JGitManager(){
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         repository = builder.setGitDir(new File(config.gitdirectory)).setMustExist(true).build()
         reader = repository.newObjectReader()
@@ -102,18 +101,21 @@ class GitCommitManager {
         walk.parseCommit(id)
     }
 
-    private static List getChangedProductionFiles(List<DiffEntry> diffs){
-        if(!diffs || diffs.empty) return []
-        def rejectedFiles = diffs.findAll{ entry ->
-            entry.newPath.equals(DiffEntry.DEV_NULL) || (config.exclude).any{ entry.newPath.contains(it) }
+    private static List getChangedProductionFilesFromDiffs(List<DiffEntry> diffs) {
+        def productionFiles = []
+        if (!diffs?.empty) {
+            def rejectedFiles = diffs.findAll { entry ->
+                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath
+                (config.exclude).any { entry.newPath.contains(it) }
+            }
+            productionFiles = diffs - rejectedFiles
         }
-        diffs -= rejectedFiles
-        return diffs
+        return productionFiles
     }
 
     List showAllChangesFromCommit(String sha){
         RevCommit commit = extractCommit(sha)
-        RevCommit parent = extractCommit(commit.parents[0].name) //se for merge, vai ter mais de um pai?
+        RevCommit parent = extractCommit(commit.parents[0].name)
         List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
         diffs.each{ showDiff(it) }
         return diffs
@@ -161,36 +163,27 @@ class GitCommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
-    List searchByComment(){
-        def commits = searchAllCommits()
-        def result = commits.findAll{ c ->
-            config.keywords?.any{c.message.contains(it)} && !c.files.empty
-        }
-        return result.sort{ it.date }
-    }
-
-    List searchByFiles(){
-        List<Commit> commits = searchAllCommits()
-        def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
-        return result.unique{ a,b -> a.hash <=> b.hash }
-    }
-
     List getChangedFilesFromCommit(RevCommit commit){
-        RevCommit parent
-
+        def files = []
         if(commit.parentCount>0) {
-            parent = extractCommit(commit.parents[0].name)
-
+            commit.parents.each{ parent ->
+                def diffs = getDiff(commit.tree, parent?.tree)
+                files += getChangedProductionFilesFromDiffs(diffs)*.newPath
+            }
         }
         else{
-            ObjectId head = repository.resolve(Constants.HEAD)
-            RevWalk revWalk = new RevWalk(repository)
-            parent = revWalk.parseCommit(head)
-            revWalk.dispose()
+            TreeWalk tw = new TreeWalk(repository)
+            tw.reset()
+            tw.setRecursive(true)
+            tw.addTree(commit.tree)
+            while(tw.next()){
+                files += tw.pathString
+            }
+            tw.release()
+            files = Util.getChangedProductionFiles(files)
         }
 
-        List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
-        return getChangedProductionFiles(diffs)*.newPath
+        return files
     }
 
     List search(){
@@ -206,6 +199,7 @@ class GitCommitManager {
         return finalResult
     }
 
+    @Override
     List searchAllCommits(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()

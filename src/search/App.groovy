@@ -3,7 +3,7 @@ package search
 class App {
 
 	public static void main (String[] args){
-        CommitsQuery cq = new CommitsQuery()
+        GremlinManager cq = new GremlinManager()
 
         //search by comment and files
         def result = cq.search()
