@@ -156,7 +156,7 @@ class FileChangesAnalyser {
     }
 
     RealInterface computeTaskInterface(){
-        List<Commit> commits = manager.searchByComment()
+        List<Commit> commits = manager.search()
         def realInterface = new RealInterface()
         realInterface.classes = commits*.files as Set
         return realInterface
