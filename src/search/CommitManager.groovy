@@ -15,7 +15,7 @@ abstract class CommitManager {
         return result.sort{ it.date }
     }
 
-    List searchByComment(){
+    List<Commit> searchByComment(){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit ->
             config.keywords?.any{commit.message.contains(it)} && !commit.files.empty
@@ -23,13 +23,13 @@ abstract class CommitManager {
         return result.sort{ it.date }
     }
 
-    List searchByFiles(){
+    List<Commit> searchByFiles(){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
         return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
-    List search(){
+    List<Commit> search(){
         def commitsByComments = searchByComment()
         println "Total commits by comments: ${commitsByComments.size()}"
 
