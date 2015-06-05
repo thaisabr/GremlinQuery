@@ -67,19 +67,6 @@ class JGitManager extends CommitManager {
         return files
     }
 
-    List search(){
-        def commitsByComments = searchByComment()
-        println "Total commits by comments: ${commitsByComments.size()}"
-
-        def commitsByFile = searchByFiles()
-        println "Total commits by files: ${commitsByFile.size()}"
-
-        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
-        println "Total commits: ${finalResult.size()}"
-
-        return finalResult
-    }
-
     @Override
     List<Commit> searchAllCommits(){
         Git git = new Git(repository)

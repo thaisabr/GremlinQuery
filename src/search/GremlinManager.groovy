@@ -27,19 +27,6 @@ class GremlinManager extends CommitManager {
         return authors.get(0)
     }
 
-    public List search(){
-        def commitsByComments = searchByComment()
-        println "Total commits by comments: ${commitsByComments.size()}"
-
-        def commitsByFile = searchByFiles()
-        println "Total commits by files: ${commitsByFile.size()}"
-
-        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
-        println "Total commits: ${finalResult.size()}"
-
-        return finalResult
-    }
-
     @Override
     public List<Commit> searchAllCommits(){
         def result = graph.V.filter{it._type == "COMMIT"}
