@@ -41,7 +41,7 @@ class GremlinManager extends CommitManager {
     }
 
     @Override
-    public searchAllCommits(){
+    public List<Commit> searchAllCommits(){
         def result = graph.V.filter{it._type == "COMMIT"}
         def commits = []
 

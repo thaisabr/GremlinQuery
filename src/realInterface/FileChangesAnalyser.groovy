@@ -5,6 +5,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.blame.BlameResult
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
+import org.eclipse.jgit.diff.RawTextComparator
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.ObjectLoader
@@ -17,23 +18,30 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
-
+import search.Commit
+import search.CommitManager
 
 class FileChangesAnalyser {
 
     Repository repository
     ObjectReader reader
+    CommitManager manager
     static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
 
-    public FileChangesAnalyser(){
+    public FileChangesAnalyser(CommitManager manager){
         FileRepositoryBuilder builder = new FileRepositoryBuilder()
         repository = builder.setGitDir(new File(config.gitdirectory)).setMustExist(true).build()
         reader = repository.newObjectReader()
+        this.manager = manager
     }
 
-    public FileChangesAnalyser(Repository repository, ObjectReader reader){
-        this.repository = repository
-        this.reader = reader
+    private List<DiffEntry> getDiff(RevTree newTree, RevTree oldTree){
+        DiffFormatter df = new DiffFormatter(new ByteArrayOutputStream())
+        df.setRepository(repository)
+        df.setDiffComparator(RawTextComparator.DEFAULT)
+        df.setDetectRenames(true)
+        List<DiffEntry> diffs = df.scan(oldTree, newTree)
+        return diffs
     }
 
     private CanonicalTreeParser getCanonicalTreeParser(RevCommit commit){
@@ -145,6 +153,20 @@ class FileChangesAnalyser {
         List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
         diffs.each{ showDiff(it) }
         return diffs
+    }
+
+    RealInterface computeTaskInterface(){
+        List<Commit> commits = manager.searchByComment()
+        def realInterface = new RealInterface()
+        realInterface.classes = commits*.files as Set
+        return realInterface
+    }
+
+    RealInterface computeTaskInterface(String taskId){
+        List<Commit> commits = manager.searchByComment(taskId)
+        def realInterface = new RealInterface()
+        realInterface.classes = commits*.files as Set
+        return realInterface
     }
 
 }

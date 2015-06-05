@@ -81,7 +81,7 @@ class JGitManager extends CommitManager {
     }
 
     @Override
-    List searchAllCommits(){
+    List<Commit> searchAllCommits(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()
         def commits = []
