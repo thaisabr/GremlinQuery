@@ -11,13 +11,13 @@ class GremlinManager extends CommitManager {
 
     public GremlinManager(){
         Gremlin.load()
-        graph = new Neo4jGraph(config.path)
+        graph = new Neo4jGraph(Util.config.path)
     }
 
     private static List getFilesFromCommit(def node){
         def files = []
         node.out('CHANGED').token.fill(files)
-        files = files.collect{it-config.prefix}
+        files = files.collect{it-Util.config.prefix}
         return Util.getChangedProductionFiles(files)
     }
 

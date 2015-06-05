@@ -1,9 +1,8 @@
 package search
 
+import util.Util
 
 abstract class CommitManager {
-
-    static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
 
     public abstract List<Commit> searchAllCommits()
 
@@ -18,14 +17,14 @@ abstract class CommitManager {
     List<Commit> searchByComment(){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit ->
-            config.keywords?.any{commit.message.contains(it)} && !commit.files.empty
+            Util.config.keywords?.any{commit.message.contains(it)} && !commit.files.empty
         }
         return result.sort{ it.date }
     }
 
     List<Commit> searchByFiles(){
         def commits = searchAllCommits()
-        def result = commits.findAll{ commit -> !(commit.files.intersect(config.files)).isEmpty() }
+        def result = commits.findAll{ commit -> !(commit.files.intersect(Util.config.files)).isEmpty() }
         return result.unique{ a,b -> a.hash <=> b.hash }
     }
 

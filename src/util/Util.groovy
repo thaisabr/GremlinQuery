@@ -3,7 +3,7 @@ package util
 
 class Util {
 
-    static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
+    static config = new ConfigSlurper().parse(Util.class.classLoader.getResource("Config.groovy"))
 
     public static List getChangedProductionFiles(List files){
         def productionFiles = []

@@ -19,7 +19,7 @@ class JGitManager extends CommitManager {
 
     public JGitManager(){
         FileRepositoryBuilder builder = new FileRepositoryBuilder()
-        repository = builder.setGitDir(new File(config.gitdirectory)).setMustExist(true).build()
+        repository = builder.setGitDir(new File(Util.config.gitdirectory)).setMustExist(true).build()
         reader = repository.newObjectReader()
     }
 
@@ -37,7 +37,7 @@ class JGitManager extends CommitManager {
         if (!diffs?.empty) {
             def rejectedFiles = diffs.findAll { entry ->
                 if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath
-                (config.exclude).any { entry.newPath.contains(it) }
+                (Util.config.exclude).any { entry.newPath.contains(it) }
             }
             productionFiles = diffs - rejectedFiles
         }

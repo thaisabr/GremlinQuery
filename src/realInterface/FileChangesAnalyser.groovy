@@ -20,17 +20,17 @@ import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import search.Commit
 import search.CommitManager
+import util.Util
 
 class FileChangesAnalyser {
 
     Repository repository
     ObjectReader reader
     CommitManager manager
-    static config = new ConfigSlurper().parse(new File("Config.groovy").toURI().toURL())
 
     public FileChangesAnalyser(CommitManager manager){
         FileRepositoryBuilder builder = new FileRepositoryBuilder()
-        repository = builder.setGitDir(new File(config.gitdirectory)).setMustExist(true).build()
+        repository = builder.setGitDir(new File(Util.config.gitdirectory)).setMustExist(true).build()
         reader = repository.newObjectReader()
         this.manager = manager
     }
