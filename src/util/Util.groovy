@@ -9,7 +9,7 @@ class Util {
         def productionFiles = []
         if(!files?.empty) {
             def rejectedFiles = files.findAll{ file ->
-                (config.exclude).any{ file.contains(it) }
+                (config.search.exclude).any{ file.contains(it) }
             }
             productionFiles = files - rejectedFiles
         }

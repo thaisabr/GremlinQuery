@@ -1,19 +1,23 @@
-//project name (to change)
-project = "rgms"
+//THIS FILE MUST BE AT THE OUTPUT DIRECTORY
 
-//Git directory (to change)
-gitdirectory = "${System.getProperty("user.home")}${File.separator}Documents${File.separator}github${File.separator}$project${File.separator}.git"
+//local project
+project.path = "${System.getProperty("user.home")}${File.separator}Documents${File.separator}GitHub${File.separator}OriginalRgms"
 
-//Path of graph database (to change)
-path = "${System.getProperty("user.home")}${File.separator}Documents${File.separator}GraphBDs${File.separator}rgms${File.separator}graph.db"
+//Git directory used by JGit
+gitdirectory = "${project.path}${File.separator}.git"
 
-//Mining commits by message
-keywords = ["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"]
+//Path of graph database used by Gremlin (to change)
+graphDB.path = "${System.getProperty("user.home")}${File.separator}Documents${File.separator}GraphBDs${File.separator}rgms${File.separator}graph.db"
 
-//Mining commits by file
-files = ["grails-app/domain/rgms/publication/BookChapter.groovy", "grails-app/controllers/rgms/publication/BookChapterController.groovy"]
+//Mining commits by message (to change)
+search.keywords = ["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"]
+
+//Mining commits by file (to change)
+search.files = ["grails-app/domain/rgms/publication/BookChapter.groovy", "grails-app/controllers/rgms/publication/BookChapterController.groovy"]
 
 //Filter changed files which name contains substring
-exclude = ["/test", "test/", "test/cucumber", "test/functional/", ".gitignore", "README.md", ".iml", "target/"]
+search.exclude = ["/test", "test/", ".gitignore", "README.md", ".iml", "target/"]
 
-prefix = "$project--"
+//project name (to change)
+projectShortName = "rgms"
+prefix = "$projectShortName--"

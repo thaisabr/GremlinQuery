@@ -11,7 +11,7 @@ class GremlinManager extends CommitManager {
 
     public GremlinManager(){
         Gremlin.load()
-        graph = new Neo4jGraph(Util.config.path)
+        graph = new Neo4jGraph(Util.config.graphDB.path)
     }
 
     private static List getFilesFromCommit(def node){

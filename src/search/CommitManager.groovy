@@ -17,14 +17,14 @@ abstract class CommitManager {
     List<Commit> searchByComment(){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit ->
-            Util.config.keywords?.any{commit.message.contains(it)} && !commit.files.empty
+            Util.config.search.keywords?.any{commit.message.contains(it)} && !commit.files.empty
         }
         return result.sort{ it.date }
     }
 
     List<Commit> searchByFiles(){
         def commits = searchAllCommits()
-        def result = commits.findAll{ commit -> !(commit.files.intersect(Util.config.files)).isEmpty() }
+        def result = commits.findAll{ commit -> !(commit.files.intersect(Util.config.search.files)).isEmpty() }
         return result.unique{ a,b -> a.hash <=> b.hash }
     }
 
