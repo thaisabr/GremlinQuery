@@ -6,10 +6,10 @@ abstract class CommitManager {
 
     public abstract List<Commit> searchAllCommits()
 
-    List searchByComment(String... words){
+    List<Commit> searchByComment(String... words){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit ->
-            words?.any{commit.message.contains(it)} && !commit.files.empty
+            words?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty
         }
         return result.sort{ it.date }
     }
@@ -17,7 +17,7 @@ abstract class CommitManager {
     List<Commit> searchByComment(){
         def commits = searchAllCommits()
         def result = commits.findAll{ commit ->
-            Util.config.search.keywords?.any{commit.message.contains(it)} && !commit.files.empty
+            Util.config.search.keywords?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty
         }
         return result.sort{ it.date }
     }
