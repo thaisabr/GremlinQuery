@@ -13,10 +13,11 @@ graphDB.path = "${System.getProperty("user.home")}${File.separator}Documents${Fi
 search.keywords = ["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"]
 
 //Mining commits by file (to change)
-search.files = ["grails-app/domain/rgms/publication/BookChapter.groovy", "grails-app/controllers/rgms/publication/BookChapterController.groovy"]
+search.files = ["grails-app${File.separator}domain${File.separator}rgms${File.separator}publication${File.separator}BookChapter.groovy",
+                "grails-app${File.separator}controllers${File.separator}rgms${File.separator}publication${File.separator}BookChapterController.groovy"]
 
 //Filter changed files which name contains substring
-search.exclude = ["/test", "test/", ".gitignore", "README.md", ".iml", "target/"]
+search.exclude = ["${File.separator}test", "test${File.separator}", ".gitignore", "README.md", ".iml", "target${File.separator}"]
 
 //project name (to change)
 projectShortName = "rgms"

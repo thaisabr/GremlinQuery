@@ -12,6 +12,8 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.treewalk.TreeWalk
 import util.Util
 
+import java.util.regex.Matcher
+
 class JGitManager extends CommitManager {
 
     Repository repository
@@ -29,7 +31,13 @@ class JGitManager extends CommitManager {
         df.setDiffComparator(RawTextComparator.DEFAULT)
         df.setDetectRenames(true)
         List<DiffEntry> diffs = df.scan(oldTree, newTree)
-        return diffs
+        List<DiffEntry> result = []
+        diffs.each{
+            it.oldPath = it.oldPath.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+            it.newPath = it.newPath.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+            result += it
+        }
+        return result
     }
 
     private static List getChangedProductionFilesFromDiffs(List<DiffEntry> diffs) {
@@ -58,7 +66,7 @@ class JGitManager extends CommitManager {
             tw.setRecursive(true)
             tw.addTree(commit.tree)
             while(tw.next()){
-                files += tw.pathString
+                files += tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
             }
             tw.release()
             files = Util.getChangedProductionFiles(files)

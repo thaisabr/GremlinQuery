@@ -5,6 +5,8 @@ import com.tinkerpop.blueprints.impls.neo4j.Neo4jGraph
 import com.tinkerpop.gremlin.groovy.Gremlin
 import util.Util
 
+import java.util.regex.Matcher
+
 class GremlinManager extends CommitManager {
 
     Graph graph
@@ -17,7 +19,7 @@ class GremlinManager extends CommitManager {
     private static List getFilesFromCommit(def node){
         def files = []
         node.out('CHANGED').token.fill(files)
-        files = files.collect{it-Util.config.prefix}
+        files = files.collect { (it-Util.config.prefix).replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator)) }
         return Util.getChangedProductionFiles(files)
     }
 

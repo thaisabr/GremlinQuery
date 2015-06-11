@@ -4,6 +4,7 @@ package util
 class Util {
 
     static config = new ConfigSlurper().parse(Util.class.classLoader.getResource("Config.groovy"))
+    static final FILE_SEPARATOR_REGEX = /(\\|\/)/
 
     public static List getChangedProductionFiles(List files){
         def productionFiles = []
