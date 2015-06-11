@@ -19,4 +19,14 @@ class Printer {
         }
     }
 
+    public static void writeCSV(def commits, String filename){
+        File csv = new File(filename)
+        csv.withWriterAppend("UTF-16"){ out ->
+            CSVPrinter csvFilePrinter = new CSVPrinter(out, CSVFormat.DEFAULT.withDelimiter('*' as char))
+            commits.each { commit ->
+                csvFilePrinter.printRecord(commit.toString())
+            }
+        }
+    }
+
 }
