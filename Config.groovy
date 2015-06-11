@@ -17,7 +17,8 @@ search.files = ["grails-app${File.separator}domain${File.separator}rgms${File.se
                 "grails-app${File.separator}controllers${File.separator}rgms${File.separator}publication${File.separator}BookChapterController.groovy"]
 
 //Filter changed files which name contains substring
-search.exclude = ["${File.separator}test", "test${File.separator}", ".gitignore", "README.md", ".iml", "target${File.separator}"]
+search.exclude = ["${File.separator}test", "test${File.separator}", ".gitignore", "README.md", ".iml", "target${File.separator}",
+                  "${File.separator}conf${File.separator}", "application.properties", "web-app${File.separator}"]
 
 //project name (to change)
 projectShortName = "rgms"
