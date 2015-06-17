@@ -43,5 +43,16 @@ class GremlinManager extends CommitManager {
         return commits.sort{ it.date }
     }
 
+    @Override
+    Commit searchBySha(String sha) {
+        def c = graph.V.filter{it._type == "COMMIT" && it.hash==sha}
+        if(c != null){
+            def files = getFilesFromCommit(c)
+            def author = getAuthorsFromCommit(c)
+            return new Commit(hash:c.hash, message:c.message, files:files, author:author, date:c.date)
+        }
+        else return null
+    }
+
 }
 
