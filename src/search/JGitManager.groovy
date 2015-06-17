@@ -150,7 +150,7 @@ class JGitManager extends CommitManager {
         else return null
     }
 
-    /********************* THOSE METHODS COULD BE USEFUL TO COMPUTE REAL INTERFACES (CHANGED METHODS)*******************
+    /********************* THOSE METHODS COULD BE USEFUL TO COMPUTE REAL INTERFACES (CHANGED METHODS)******************/
     private TreeWalk generateTreeWalk(RevTree tree, String filename){
         TreeWalk treeWalk = new TreeWalk(repository)
         treeWalk.addTree(tree)
@@ -229,6 +229,6 @@ class JGitManager extends CommitManager {
         List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
         diffs.each{ showDiff(it) }
         return diffs
-    }*/
-
+    }
+    /******************************************************************************************************************/
 }
