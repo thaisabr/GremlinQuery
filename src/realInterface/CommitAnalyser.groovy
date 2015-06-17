@@ -1,12 +1,10 @@
 package realInterface
 
-import org.eclipse.jgit.lib.Repository
 import search.Commit
 import search.CommitManager
 
 class CommitAnalyser {
 
-    Repository repository
     CommitManager manager
 
     public CommitAnalyser(CommitManager manager){
