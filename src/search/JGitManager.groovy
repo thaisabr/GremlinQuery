@@ -52,7 +52,7 @@ class JGitManager extends CommitManager {
         def productionFiles = []
         if (!diffs?.empty) {
             def rejectedFiles = diffs.findAll { entry ->
-                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath
+                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath-Util.DELETED_FILE_OLD_PATH_SUFIX
                 (Util.config.search.exclude).any { entry.newPath.contains(it) }
             }
             productionFiles = diffs - rejectedFiles
