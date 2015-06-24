@@ -132,7 +132,8 @@ class JGitManager extends CommitManager {
 
         logs.each{ c ->
             def files = getChangedFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.fullMessage, files:files, author:c.authorIdent.name, date:c.commitTime)
+            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
+                                  author:c.authorIdent.name, date:c.commitTime)
         }
 
         return commits.sort{ it.date }
@@ -144,8 +145,8 @@ class JGitManager extends CommitManager {
         def c = git.log().call().find{it.name == sha}
         if(c != null){
             def files = getChangedFilesFromCommit(c)
-            showChangesFromCommit(c, files)
-            return new Commit(hash:c.name, message:c.fullMessage, files:files, author:c.authorIdent.name, date:c.commitTime)
+            return new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
+                              author:c.authorIdent.name, date:c.commitTime)
         }
         else return null
     }

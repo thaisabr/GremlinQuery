@@ -11,7 +11,7 @@ class Commit {
     String date
 
     public String toString(){
-         "$hash*$date*$author*${message.replaceAll("[\n\r]", ";")}*${files.toListString()}"
+         "$hash*$date*$author*$message*${files.toListString()}"
     }
 
 }

@@ -37,7 +37,7 @@ class GremlinManager extends CommitManager {
         result.each{ r ->
             def files = getFilesFromCommit(r)
             def author = getAuthorsFromCommit(r)
-            commits += new Commit(hash:r.hash, message:r.message, files:files, author:author, date:r.date)
+            commits += new Commit(hash:r.hash, message:r.message.replaceAll("\r\n|\n"," "), files:files, author:author, date:r.date)
         }
 
         return commits.sort{ it.date }
@@ -49,7 +49,7 @@ class GremlinManager extends CommitManager {
         if(c != null){
             def files = getFilesFromCommit(c)
             def author = getAuthorsFromCommit(c)
-            return new Commit(hash:c.hash, message:c.message, files:files, author:author, date:c.date)
+            return new Commit(hash:c.hash, message:c.message.replaceAll("\r\n|\n"," "), files:files, author:author, date:c.date)
         }
         else return null
     }
