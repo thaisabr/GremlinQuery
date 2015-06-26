@@ -11,9 +11,9 @@ class CommitAnalyser {
         this.manager = manager
     }
 
-    RealInterface computeTaskInterfaceForCommit(String sha){
-        Commit commit = manager?.searchBySha(sha)
-        return new RealInterface(commits:[commit] as Set, files:commit.files.sort() as Set)
+    RealInterface computeTaskInterfaceForCommit(String... sha){
+        List<Commit> commits = manager?.searchBySha(sha)
+        return new RealInterface(commits:commits as Set, files:(commits*.files.flatten().unique().sort()) as Set)
     }
 
     RealInterface computeTaskInterface(){

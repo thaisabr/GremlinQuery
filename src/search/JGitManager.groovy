@@ -52,7 +52,7 @@ class JGitManager extends CommitManager {
         def productionFiles = []
         if (!diffs?.empty) {
             def rejectedFiles = diffs.findAll { entry ->
-                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath-Util.DELETED_FILE_OLD_PATH_SUFIX
+                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath
                 (Util.config.search.exclude).any { entry.newPath.contains(it) }
             }
             productionFiles = diffs - rejectedFiles
@@ -87,7 +87,8 @@ class JGitManager extends CommitManager {
         CanonicalTreeParser oldTreeParser = getCanonicalTreeParser(parent)
 
         files.each{ file ->
-            List<DiffEntry> diff = getDiffFromFile(file.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement("/")), newTreeParser, oldTreeParser)
+            def diff = getDiffFromFile(file.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement("/")),
+                                       newTreeParser, oldTreeParser)
             diff.each { showDiff(it) }
         }
     }
@@ -140,15 +141,16 @@ class JGitManager extends CommitManager {
     }
 
     @Override
-    Commit searchBySha(String sha) {
+    List<Commit> searchBySha(String... sha) {
         Git git = new Git(repository)
-        def c = git.log().call().find{it.name == sha}
-        if(c != null){
+        def result = git.log().call().findAll{ it.name in sha }
+        def commits = []
+        result?.each{ c ->
             def files = getChangedFilesFromCommit(c)
-            return new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
+            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
                               author:c.authorIdent.name, date:c.commitTime)
         }
-        else return null
+        return commits.sort{ it.date }
     }
 
     /********************* THOSE METHODS COULD BE USEFUL TO COMPUTE REAL INTERFACES (CHANGED METHODS)******************/
@@ -161,7 +163,7 @@ class JGitManager extends CommitManager {
         return treeWalk
     }
 
-    private List getFileLinesContent(ObjectId commitID, String filename) {
+    private List getFileContent(ObjectId commitID, String filename) {
         RevWalk revWalk = new RevWalk(repository)
         RevCommit commit = revWalk.parseCommit(commitID)
         TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
@@ -173,7 +175,8 @@ class JGitManager extends CommitManager {
         return stream.toString().readLines()
     }
 
-    private List getFileLinesContent(RevCommit commit, String filename){
+    /* Retrieving file content */
+    private List getFileContent(RevCommit commit, String filename){
         TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
         ObjectId objectId = treeWalk.getObjectId(0)
         ObjectLoader loader = repository.open(objectId)
@@ -182,7 +185,7 @@ class JGitManager extends CommitManager {
         return stream.toString().readLines()
     }
 
-    //show file history by line
+    /* Printing file history by line */
     def showChangedLines(String filename){
         BlameCommand blamer = new BlameCommand(repository)
         ObjectId head = repository.resolve(Constants.HEAD)
@@ -190,7 +193,7 @@ class JGitManager extends CommitManager {
         blamer.setFilePath(filename)
         BlameResult blame = blamer.call()
 
-        def lines = getFileLinesContent(head, filename)
+        def lines = getFileContent(head, filename)
         lines.eachWithIndex{ line, i ->
             RevCommit commit = blame.getSourceCommit(i)
             println "Line $i(${commit.name}): $line"
@@ -198,14 +201,16 @@ class JGitManager extends CommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
-    def showFileLinesContent(RevCommit commit, String file){
-        def commitLines = getFileLinesContent(commit, file)
+    /* Printing file content by line */
+    def showFileContent(RevCommit commit, String file){
+        def commitLines = getFileContent(commit, file)
         println "LINES: ${commitLines.size()}"
         commitLines.each{ line ->
             println line
         }
     }
 
+    /* Printing the changes for files from a commit */
     def showChanges(String sha, List<String> changedFiles){
         RevCommit commit = extractCommit(sha)
         RevCommit parent = extractCommit(commit.parents[0].name)
@@ -217,19 +222,21 @@ class JGitManager extends CommitManager {
             diff.each { showDiff(it) }
 
             println "<NEW VERSION>"
-            showFileLinesContent(commit, file)
+            showFileContent(commit, file)
 
             println "<PARENT VERSION>"
-            showFileLinesContent(parent, file)
+            showFileContent(parent, file)
         }
     }
 
-    List showAllChangesFromCommit(String sha){
+    def showAllChangesFromCommit(String sha){
         RevCommit commit = extractCommit(sha)
-        RevCommit parent = extractCommit(commit.parents[0].name)
-        List<DiffEntry> diffs = getDiff(commit.tree, parent.tree)
-        diffs.each{ showDiff(it) }
-        return diffs
+        if(commit.parentCount>0) {
+            commit.parents.each{ parent ->
+                def diffs = getDiff(commit.tree, parent?.tree)
+                diffs.each{ showDiff(it) }
+            }
+        }
     }
     /******************************************************************************************************************/
 }

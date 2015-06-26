@@ -30,28 +30,27 @@ class GremlinManager extends CommitManager {
     }
 
     @Override
-    public List<Commit> searchAllCommits(){
+    List<Commit> searchAllCommits(){
         def result = graph.V.filter{it._type == "COMMIT"}
         def commits = []
-
-        result.each{ r ->
+        result?.each{ r ->
             def files = getFilesFromCommit(r)
             def author = getAuthorsFromCommit(r)
             commits += new Commit(hash:r.hash, message:r.message.replaceAll("\r\n|\n"," "), files:files, author:author, date:r.date)
         }
-
         return commits.sort{ it.date }
     }
 
     @Override
-    Commit searchBySha(String sha) {
-        def c = graph.V.filter{it._type == "COMMIT" && it.hash==sha}
-        if(c != null){
+    List<Commit> searchBySha(String... sha) {
+        def result = graph.V.filter{ (it._type == "COMMIT") && (it.hash in sha) }
+        def commits = []
+        result?.each{ c ->
             def files = getFilesFromCommit(c)
             def author = getAuthorsFromCommit(c)
-            return new Commit(hash:c.hash, message:c.message.replaceAll("\r\n|\n"," "), files:files, author:author, date:c.date)
+            commits += new Commit(hash:c.hash, message:c.message.replaceAll("\r\n|\n"," "), files:files, author:author, date:c.date)
         }
-        else return null
+        return commits.sort{ it.date }
     }
 
 }

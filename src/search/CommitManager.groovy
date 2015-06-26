@@ -6,7 +6,7 @@ abstract class CommitManager {
 
     public abstract List<Commit> searchAllCommits()
 
-    public abstract Commit searchBySha(String sha)
+    public abstract List<Commit> searchBySha(String... sha)
 
     List<Commit> searchByComment(List words){
         def commits = searchAllCommits()
