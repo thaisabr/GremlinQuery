@@ -15,11 +15,9 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import util.Util
-
 import java.util.regex.Matcher
 
 class JGitManager extends CommitManager {
@@ -33,11 +31,12 @@ class JGitManager extends CommitManager {
         reader = repository.newObjectReader()
     }
 
-    private List<DiffEntry> getDiff(RevTree newTree, RevTree oldTree){
+    private List<DiffEntry> getDiff(String filename, RevTree newTree, RevTree oldTree){
         DiffFormatter df = new DiffFormatter(new ByteArrayOutputStream())
         df.setRepository(repository)
         df.setDiffComparator(RawTextComparator.DEFAULT)
         df.setDetectRenames(true)
+        if(filename!=null && !filename.isEmpty()) df.setPathFilter(PathFilter.create(filename))
         List<DiffEntry> diffs = df.scan(oldTree, newTree)
         List<DiffEntry> result = []
         diffs.each{
@@ -51,11 +50,14 @@ class JGitManager extends CommitManager {
     private static List getChangedProductionFilesFromDiffs(List<DiffEntry> diffs) {
         def productionFiles = []
         if (!diffs?.empty) {
-            def rejectedFiles = diffs.findAll { entry ->
-                if (entry.changeType == DiffEntry.ChangeType.DELETE) entry.newPath = entry.oldPath
-                (Util.config.search.exclude).any { entry.newPath.contains(it) }
+            diffs.each{ entry ->
+                if(entry.changeType==DiffEntry.ChangeType.DELETE){
+                    if( !(Util.config.search.exclude).any{entry.oldPath.contains(it)} ){ productionFiles += entry.oldPath }
+                }
+                else if( !(Util.config.search.exclude).any{entry.newPath.contains(it)} ){
+                    productionFiles += entry.newPath
+                }
             }
-            productionFiles = diffs - rejectedFiles
         }
         return productionFiles
     }
@@ -66,38 +68,12 @@ class JGitManager extends CommitManager {
         walk.parseCommit(id)
     }
 
-    private CanonicalTreeParser getCanonicalTreeParser(RevCommit commit){
-        CanonicalTreeParser tree = new CanonicalTreeParser()
-        tree.reset(reader, commit.tree)
-        return tree
-    }
-
-    private List<DiffEntry> getDiffFromFile(String filename, CanonicalTreeParser newTree, CanonicalTreeParser oldTree){
-        List<DiffEntry> diff = new Git(repository).diff()
-                .setOldTree(oldTree)
-                .setNewTree(newTree)
-                .setPathFilter(PathFilter.create(filename))
-                .call()
-        return diff
-    }
-
-    private showChangesFromCommit(RevCommit commit, List files){
-        RevCommit parent = extractCommit(commit.parents[0].name)
-        CanonicalTreeParser newTreeParser = getCanonicalTreeParser(commit)
-        CanonicalTreeParser oldTreeParser = getCanonicalTreeParser(parent)
-
-        files.each{ file ->
-            def diff = getDiffFromFile(file.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement("/")),
-                                       newTreeParser, oldTreeParser)
-            diff.each { showDiff(it) }
-        }
-    }
-
     private showDiff(DiffEntry entry){
         println "File: ${entry.newPath}; Change type: ${entry.changeType}"
         ByteArrayOutputStream stream = new ByteArrayOutputStream()
         DiffFormatter formatter = new DiffFormatter(stream)
         formatter.setRepository(repository)
+        formatter.setDetectRenames(true)
         formatter.format(entry)
         println stream
     }
@@ -106,8 +82,8 @@ class JGitManager extends CommitManager {
         def files = []
         if(commit.parentCount>0) {
             commit.parents.each{ parent ->
-                def diffs = getDiff(commit.tree, parent?.tree)
-                files += getChangedProductionFilesFromDiffs(diffs)*.newPath
+                def diffs = getDiff(null, commit.tree, parent?.tree)
+                files += getChangedProductionFilesFromDiffs(diffs)
             }
         }
         else{
@@ -133,7 +109,7 @@ class JGitManager extends CommitManager {
 
         logs.each{ c ->
             def files = getChangedFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
+            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
                                   author:c.authorIdent.name, date:c.commitTime)
         }
 
@@ -147,7 +123,7 @@ class JGitManager extends CommitManager {
         def commits = []
         result?.each{ c ->
             def files = getChangedFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll("\r\n|\n"," "), files:files,
+            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
                               author:c.authorIdent.name, date:c.commitTime)
         }
         return commits.sort{ it.date }
@@ -177,12 +153,21 @@ class JGitManager extends CommitManager {
 
     /* Retrieving file content */
     private List getFileContent(RevCommit commit, String filename){
-        TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
+        TreeWalk treeWalk = generateTreeWalk(commit?.tree, filename)
         ObjectId objectId = treeWalk.getObjectId(0)
         ObjectLoader loader = repository.open(objectId)
         ByteArrayOutputStream stream = new ByteArrayOutputStream()
         loader.copyTo(stream)
         return stream.toString().readLines()
+    }
+
+    /* Printing file content by line */
+    def showFileContent(RevCommit commit, String file){
+        def commitLines = getFileContent(commit, file)
+        println "LINES: ${commitLines.size()}"
+        commitLines.each{ line ->
+            println line
+        }
     }
 
     /* Printing file history by line */
@@ -201,31 +186,16 @@ class JGitManager extends CommitManager {
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
     }
 
-    /* Printing file content by line */
-    def showFileContent(RevCommit commit, String file){
-        def commitLines = getFileContent(commit, file)
-        println "LINES: ${commitLines.size()}"
-        commitLines.each{ line ->
-            println line
-        }
-    }
-
-    /* Printing the changes for files from a commit */
+    /* Printing changes in specific files of a commit */
     def showChanges(String sha, List<String> changedFiles){
         RevCommit commit = extractCommit(sha)
-        RevCommit parent = extractCommit(commit.parents[0].name)
-        CanonicalTreeParser newTreeParser = getCanonicalTreeParser(commit)
-        CanonicalTreeParser oldTreeParser = getCanonicalTreeParser(parent)
-
-        changedFiles.each{ file ->
-            List<DiffEntry> diff = getDiffFromFile(file, newTreeParser, oldTreeParser)
-            diff.each { showDiff(it) }
-
-            println "<NEW VERSION>"
-            showFileContent(commit, file)
-
-            println "<PARENT VERSION>"
-            showFileContent(parent, file)
+        if(commit.parentCount>0) {
+            commit.parents.each{ parent ->
+                changedFiles.each{ file ->
+                    List<DiffEntry> diff = getDiff(file, commit.tree, parent?.tree)
+                    diff.each { showDiff(it) }
+                }
+            }
         }
     }
 
@@ -233,7 +203,7 @@ class JGitManager extends CommitManager {
         RevCommit commit = extractCommit(sha)
         if(commit.parentCount>0) {
             commit.parents.each{ parent ->
-                def diffs = getDiff(commit.tree, parent?.tree)
+                def diffs = getDiff(null, commit.tree, parent?.tree)
                 diffs.each{ showDiff(it) }
             }
         }
