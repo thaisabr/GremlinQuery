@@ -6,6 +6,7 @@ import org.eclipse.jgit.blame.BlameResult
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.diff.RawTextComparator
+import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.ObjectLoader
@@ -51,6 +52,9 @@ class JGitManager extends CommitManager {
         def productionFiles = []
         if (!diffs?.empty) {
             diffs.each{ entry ->
+                if(entry.changeType==DiffEntry.ChangeType.RENAME){
+                    println "<RENAME> old:${entry.oldPath}; new:${entry.newPath}"
+                }
                 if(entry.changeType==DiffEntry.ChangeType.DELETE){
                     if( !(Util.config.search.exclude).any{entry.oldPath.contains(it)} ){ productionFiles += entry.oldPath }
                 }
@@ -142,13 +146,20 @@ class JGitManager extends CommitManager {
     private List getFileContent(ObjectId commitID, String filename) {
         RevWalk revWalk = new RevWalk(repository)
         RevCommit commit = revWalk.parseCommit(commitID)
-        TreeWalk treeWalk = generateTreeWalk(commit.tree, filename)
+        TreeWalk treeWalk = generateTreeWalk(commit?.tree, filename)
         ObjectId objectId = treeWalk.getObjectId(0)
-        ObjectLoader loader = repository.open(objectId)
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()
-        loader.copyTo(stream)
-        revWalk.dispose()
-        return stream.toString().readLines()
+        try{
+            ObjectLoader loader = repository.open(objectId)
+            ByteArrayOutputStream stream = new ByteArrayOutputStream()
+            loader.copyTo(stream)
+            revWalk.dispose()
+            return stream.toString().readLines()
+        }
+        catch(MissingObjectException exception){
+            if(objectId.equals(ObjectId.zeroId()))
+                println "There is no ObjectID for the commit tree. Verify the file separator used in the filename."
+            return []
+        }
     }
 
     /* Retrieving file content */
@@ -171,23 +182,28 @@ class JGitManager extends CommitManager {
     }
 
     /* Printing file history by line */
-    def showChangedLines(String filename){
+    List<String> showLinesHistoryOfHeadVersion(String filename){
+        println "Filename: $filename"
         BlameCommand blamer = new BlameCommand(repository)
         ObjectId head = repository.resolve(Constants.HEAD)
         blamer.setStartCommit(head)
         blamer.setFilePath(filename)
-        BlameResult blame = blamer.call()
+        BlameResult blameResult = blamer.call()
+        def shas = []
 
         def lines = getFileContent(head, filename)
         lines.eachWithIndex{ line, i ->
-            RevCommit commit = blame.getSourceCommit(i)
-            println "Line $i(${commit.name}): $line"
+            RevCommit commit = blameResult.getSourceCommit(i)
+            shas += commit
+            println "Line ${i+1}(${commit.name}): $line"
         }
         println "Displayed commits responsible for ${lines.size()} lines of $filename"
+        return shas.unique().sort{ it.commitTime }*.name
     }
 
     /* Printing changes in specific files of a commit */
     def showChanges(String sha, List<String> changedFiles){
+        println "Commit sha: $sha"
         RevCommit commit = extractCommit(sha)
         if(commit.parentCount>0) {
             commit.parents.each{ parent ->
@@ -197,15 +213,33 @@ class JGitManager extends CommitManager {
                 }
             }
         }
+        else{
+            TreeWalk tw = generateTreeWalk(commit.tree)
+            while (tw.next()) {
+                def path = tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+                if(path in changedFiles) showFileContent(commit, path)
+            }
+            tw.release()
+        }
     }
 
     def showAllChangesFromCommit(String sha){
+        println "Commit sha: $sha"
         RevCommit commit = extractCommit(sha)
         if(commit.parentCount>0) {
             commit.parents.each{ parent ->
                 def diffs = getDiff(null, commit.tree, parent?.tree)
                 diffs.each{ showDiff(it) }
             }
+        }
+        else{
+            TreeWalk tw = generateTreeWalk(commit.tree)
+            while(tw.next()){
+                def path = tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+                showFileContent(commit, path)
+            }
+            tw.release()
+
         }
     }
     /******************************************************************************************************************/
