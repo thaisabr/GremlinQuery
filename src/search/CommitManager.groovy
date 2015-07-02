@@ -50,11 +50,14 @@ abstract class CommitManager {
     }
 
     List<Commit> search(List words, List files){
-        def commitsByComments = searchByComment(words)
+        def commits = searchAllCommits()
 
-        def commitsByFile = searchByFiles(files)
+        def result = commits.findAll{ commit ->
+            (words?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty) ||
+            !(commit.files.intersect(files)).isEmpty()
+        }
 
-        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
+        def finalResult = result.unique{ a,b -> a.hash <=> b.hash }.sort{ it.date }
         println "Total commits: ${finalResult.size()}"
 
         return finalResult
