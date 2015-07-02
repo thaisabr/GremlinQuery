@@ -8,14 +8,9 @@ class Util {
     static final NEW_LINE_REGEX = /\r\n|\n/
 
     public static List getChangedProductionFiles(List files){
-        def productionFiles = []
-        if(!files?.empty) {
-            def rejectedFiles = files.findAll{ file ->
-                (config.search.exclude).any{ file.contains(it) }
-            }
-            productionFiles = files - rejectedFiles
+        files?.findAll{ file ->
+            !(config.search.exclude).any{ file.contains(it) }
         }
-        return productionFiles
     }
 
 }
