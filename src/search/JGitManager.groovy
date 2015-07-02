@@ -48,28 +48,33 @@ class JGitManager extends CommitManager {
         return result
     }
 
-    private static List getChangedProductionFilesFromDiffs(List<DiffEntry> diffs) {
-        def productionFiles = []
+    private static List getAllChangedFilesFromDiffs(List<DiffEntry> diffs) {
+        def files = []
         if (!diffs?.empty) {
             diffs.each{ entry ->
                 if(entry.changeType==DiffEntry.ChangeType.RENAME){
                     println "<RENAME> old:${entry.oldPath}; new:${entry.newPath}"
                 }
-                if(entry.changeType==DiffEntry.ChangeType.DELETE){
-                    if( !(Util.config.search.exclude).any{entry.oldPath.contains(it)} ){ productionFiles += entry.oldPath }
-                }
-                else if( !(Util.config.search.exclude).any{entry.newPath.contains(it)} ){
-                    productionFiles += entry.newPath
-                }
+                if(entry.changeType==DiffEntry.ChangeType.DELETE) files += entry.oldPath
+                else files += entry.newPath
             }
         }
-        return productionFiles
+        return files
     }
 
     private RevCommit extractCommit(String sha){
-        RevWalk walk = new RevWalk(repository)
+        Git git = new Git(repository)
+        RevCommit result1 = git.log().call().find{ it.name == sha }
+
+        /* RevWalk is better to search commits when we need to filter the search. The problem is the code produces a
+           wrong result (based on Github). Changed files from result1 are different from result2. The reason is the
+           parents of such commits are different.*/
+        /*RevWalk revWalk = new RevWalk(repository)
         ObjectId id = repository.resolve(sha)
-        walk.parseCommit(id)
+        RevCommit result2 = revWalk.parseCommit(id)
+        revWalk.dispose()*/
+
+        return result1
     }
 
     private showDiff(DiffEntry entry){
@@ -82,13 +87,19 @@ class JGitManager extends CommitManager {
         println stream
     }
 
-    private List getChangedFilesFromCommit(RevCommit commit){
+    private List getChangedProductionFilesFromCommit(RevCommit commit){
+        def files = getAllChangedFilesFromCommit(commit)
+        files.each {println it }
+        def productionFiles = Util.getChangedProductionFiles(files)
+        productionFiles.each {println it }
+        return productionFiles
+    }
+
+    private List getAllChangedFilesFromCommit(RevCommit commit){
         def files = []
         if(commit.parentCount>0) {
-            commit.parents.each{ parent ->
-                def diffs = getDiff(null, commit.tree, parent?.tree)
-                files += getChangedProductionFilesFromDiffs(diffs)
-            }
+            def diffs = getDiff(null, commit.tree, commit.parents.first().tree)
+            files = getAllChangedFilesFromDiffs(diffs)
         }
         else{
             TreeWalk tw = new TreeWalk(repository)
@@ -99,9 +110,7 @@ class JGitManager extends CommitManager {
                 files += tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
             }
             tw.release()
-            files = Util.getChangedProductionFiles(files)
         }
-
         return files
     }
 
@@ -112,7 +121,7 @@ class JGitManager extends CommitManager {
         def commits = []
 
         logs.each{ c ->
-            def files = getChangedFilesFromCommit(c)
+            def files = getChangedProductionFilesFromCommit(c)
             commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
                                   author:c.authorIdent.name, date:c.commitTime)
         }
@@ -126,7 +135,7 @@ class JGitManager extends CommitManager {
         def result = git.log().call().findAll{ it.name in sha }
         def commits = []
         result?.each{ c ->
-            def files = getChangedFilesFromCommit(c)
+            def files = getChangedProductionFilesFromCommit(c)
             commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
                               author:c.authorIdent.name, date:c.commitTime)
         }
@@ -202,15 +211,14 @@ class JGitManager extends CommitManager {
     }
 
     /* Printing changes in specific files of a commit */
-    def showChanges(String sha, List<String> changedFiles){
+    def showChanges(String sha, Collection<String> changedFiles){
+        changedFiles = changedFiles*.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement("/"))
         println "Commit sha: $sha"
         RevCommit commit = extractCommit(sha)
         if(commit.parentCount>0) {
-            commit.parents.each{ parent ->
-                changedFiles.each{ file ->
-                    List<DiffEntry> diff = getDiff(file, commit.tree, parent?.tree)
-                    diff.each { showDiff(it) }
-                }
+            changedFiles.each{ file ->
+                List<DiffEntry> diff = getDiff(file, commit?.tree, commit.parents.first().tree)
+                diff.each { showDiff(it) }
             }
         }
         else{
@@ -227,10 +235,8 @@ class JGitManager extends CommitManager {
         println "Commit sha: $sha"
         RevCommit commit = extractCommit(sha)
         if(commit.parentCount>0) {
-            commit.parents.each{ parent ->
-                def diffs = getDiff(null, commit.tree, parent?.tree)
-                diffs.each{ showDiff(it) }
-            }
+            def diffs = getDiff(null, commit.tree, commit.parents.first().tree)
+            diffs.each{ showDiff(it) }
         }
         else{
             TreeWalk tw = generateTreeWalk(commit.tree)
@@ -239,7 +245,6 @@ class JGitManager extends CommitManager {
                 showFileContent(commit, path)
             }
             tw.release()
-
         }
     }
     /******************************************************************************************************************/
