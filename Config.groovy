@@ -10,7 +10,7 @@ gitdirectory = "${project.path}${File.separator}.git"
 graphDB.path = "${System.getProperty("user.home")}${File.separator}Documents${File.separator}GraphBDs${File.separator}rgms${File.separator}graph.db"
 
 //Mining commits by message (to change)
-search.keywords = ["bookChapter", "bookchapter", "BookChapter", "book chapter", "Book Chapter"]
+search.keywords = ["bookchapter", "book chapter"]
 
 //Mining commits by file (to change)
 search.files = ["grails-app${File.separator}domain${File.separator}rgms${File.separator}publication${File.separator}BookChapter.groovy",
@@ -18,7 +18,8 @@ search.files = ["grails-app${File.separator}domain${File.separator}rgms${File.se
 
 //Filter changed files which name contains substring
 search.exclude = ["${File.separator}test", "test${File.separator}", ".gitignore", "README.md", ".iml", "target${File.separator}",
-                  "${File.separator}conf${File.separator}", "application.properties", "web-app${File.separator}"]
+                  "${File.separator}conf${File.separator}", "application.properties", "web-app${File.separator}", ".exe",
+                  ".db", ".jar", ".classpath", ".project", ".settings"]
 
 //project name (to change)
 projectShortName = "rgms"
