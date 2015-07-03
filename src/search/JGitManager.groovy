@@ -52,11 +52,11 @@ class JGitManager extends CommitManager {
         def files = []
         if (!diffs?.empty) {
             diffs.each{ entry ->
-                if(entry.changeType==DiffEntry.ChangeType.RENAME){
-                    println "<RENAME> old:${entry.oldPath}; new:${entry.newPath}"
-                }
                 if(entry.changeType==DiffEntry.ChangeType.DELETE) files += entry.oldPath
-                else files += entry.newPath
+                else {
+                    files += entry.newPath
+                    //if(entry.changeType==DiffEntry.ChangeType.RENAME) println "<RENAME> old:${entry.oldPath}; new:${entry.newPath}"
+                }
             }
         }
         return files
@@ -89,9 +89,7 @@ class JGitManager extends CommitManager {
 
     private List getChangedProductionFilesFromCommit(RevCommit commit){
         def files = getAllChangedFilesFromCommit(commit)
-        files.each {println it }
         def productionFiles = Util.getChangedProductionFiles(files)
-        productionFiles.each {println it }
         return productionFiles
     }
 
@@ -147,7 +145,7 @@ class JGitManager extends CommitManager {
         TreeWalk treeWalk = new TreeWalk(repository)
         treeWalk.addTree(tree)
         treeWalk.setRecursive(true)
-        treeWalk.setFilter(PathFilter.create(filename))
+        if(filename) treeWalk.setFilter(PathFilter.create(filename))
         treeWalk.next()
         return treeWalk
     }
@@ -173,18 +171,14 @@ class JGitManager extends CommitManager {
 
     /* Retrieving file content */
     private List getFileContent(RevCommit commit, String filename){
-        TreeWalk treeWalk = generateTreeWalk(commit?.tree, filename)
-        ObjectId objectId = treeWalk.getObjectId(0)
-        ObjectLoader loader = repository.open(objectId)
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()
-        loader.copyTo(stream)
-        return stream.toString().readLines()
+        ObjectId commitID = ObjectId.fromString(commit.name)
+        getFileContent(commitID, filename)
     }
 
     /* Printing file content by line */
     def showFileContent(RevCommit commit, String file){
         def commitLines = getFileContent(commit, file)
-        println "LINES: ${commitLines.size()}"
+        println "FILE: $file; SIZE: ${commitLines.size()} lines"
         commitLines.each{ line ->
             println line
         }
@@ -222,9 +216,9 @@ class JGitManager extends CommitManager {
             }
         }
         else{
-            TreeWalk tw = generateTreeWalk(commit.tree)
+            TreeWalk tw = generateTreeWalk(commit.tree, null)
             while (tw.next()) {
-                def path = tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+                def path = tw.pathString
                 if(path in changedFiles) showFileContent(commit, path)
             }
             tw.release()
@@ -239,9 +233,9 @@ class JGitManager extends CommitManager {
             diffs.each{ showDiff(it) }
         }
         else{
-            TreeWalk tw = generateTreeWalk(commit.tree)
+            TreeWalk tw = generateTreeWalk(commit.tree, null)
             while(tw.next()){
-                def path = tw.pathString.replaceAll(Util.FILE_SEPARATOR_REGEX, Matcher.quoteReplacement(File.separator))
+                def path = tw.pathString
                 showFileContent(commit, path)
             }
             tw.release()
