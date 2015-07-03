@@ -9,7 +9,7 @@ class Printer {
 
     static COMMITS_FILENAME = "commits.csv"
 
-    public static void writeCSV(def commits){
+    public static void writeCSV(List<Commit> commits){
         File csv = new File(COMMITS_FILENAME)
         csv.withWriterAppend("UTF-16"){ out ->
             CSVPrinter csvFilePrinter = new CSVPrinter(out, CSVFormat.DEFAULT.withDelimiter('*' as char))
@@ -19,7 +19,7 @@ class Printer {
         }
     }
 
-    public static void writeCSV(def commits, String filename){
+    public static void writeCSV(List<Commit> commits, String filename){
         File csv = new File(filename)
         csv.withWriterAppend("UTF-16"){ out ->
             CSVPrinter csvFilePrinter = new CSVPrinter(out, CSVFormat.DEFAULT.withDelimiter('*' as char))

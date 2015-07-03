@@ -8,59 +8,54 @@ abstract class CommitManager {
 
     public abstract List<Commit> searchBySha(String... sha)
 
-    List<Commit> searchByComment(List words){
+    List<Commit> searchByComment(List<String> words){
         def commits = searchAllCommits()
+        println "Total commits: ${commits.size()}"
+
         def result = commits.findAll{ commit ->
             words?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty
         }
-        return result.sort{ it.date }
+        def finalResult = result.unique{ a,b -> a.hash <=> b.hash }
+        println "Total commits by comment: ${finalResult.size()}"
+
+        return finalResult.sort{ it.date }
     }
 
     List<Commit> searchByComment(){
-        def commits = searchAllCommits()
-        def result = commits.findAll{ commit ->
-            Util.config.search.keywords?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty
-        }
-        return result.sort{ it.date }
+        searchByComment(Util.config.search.keywords)
     }
 
-    List<Commit> searchByFiles(List files){
+    List<Commit> searchByFiles(List<String> files){
         def commits = searchAllCommits()
+        println "Total commits: ${commits.size()}"
+
         def result = commits.findAll{ commit -> !(commit.files.intersect(files)).isEmpty() }
-        return result.unique{ a,b -> a.hash <=> b.hash }
+        def finalResult = result.unique{ a,b -> a.hash <=> b.hash }
+        println "Total commits by file: ${finalResult.size()}"
+
+        return finalResult.sort{ it.date }
     }
 
     List<Commit> searchByFiles(){
-        def commits = searchAllCommits()
-        def result = commits.findAll{ commit -> !(commit.files.intersect(Util.config.search.files)).isEmpty() }
-        return result.unique{ a,b -> a.hash <=> b.hash }
+        searchByFiles(Util.config.search.files)
     }
 
     List<Commit> search(){
-        def commitsByComments = searchByComment()
-        println "Total commits by comments: ${commitsByComments.size()}"
-
-        def commitsByFile = searchByFiles()
-        println "Total commits by files: ${commitsByFile.size()}"
-
-        def finalResult = (commitsByComments + commitsByFile).unique{ a,b -> a.hash <=> b.hash }
-        println "Total commits: ${finalResult.size()}"
-
-        return finalResult
+        search(Util.config.search.keywords, Util.config.search.files)
     }
 
-    List<Commit> search(List words, List files){
+    List<Commit> search(List<String> words, List<String> files){
         def commits = searchAllCommits()
+        println "Total commits: ${commits.size()}"
 
         def result = commits.findAll{ commit ->
             (words?.any{commit.message.toLowerCase().contains(it)} && !commit.files.empty) ||
             !(commit.files.intersect(files)).isEmpty()
         }
+        def finalResult = result.unique{ a,b -> a.hash <=> b.hash }
+        println "Total commits by comments and files: ${finalResult.size()}"
 
-        def finalResult = result.unique{ a,b -> a.hash <=> b.hash }.sort{ it.date }
-        println "Total commits: ${finalResult.size()}"
-
-        return finalResult
+        return finalResult.sort{ it.date }
     }
 
 }
