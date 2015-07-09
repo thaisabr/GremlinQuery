@@ -112,31 +112,29 @@ class JGitManager extends CommitManager {
         return files
     }
 
+    private List<Commit> extractCommitsFromLogs(Iterable<RevCommit> logs){
+        def commits = []
+        logs.each{ c ->
+            def files = getChangedProductionFilesFromCommit(c)
+            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
+                    author:c.authorIdent.name, date:c.commitTime)
+        }
+        return commits
+    }
+
     @Override
     List<Commit> searchAllCommits(){
         Git git = new Git(repository)
         Iterable<RevCommit> logs = git.log().call()
-        def commits = []
-
-        logs.each{ c ->
-            def files = getChangedProductionFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
-                                  author:c.authorIdent.name, date:c.commitTime)
-        }
-
+        def commits = extractCommitsFromLogs(logs)
         return commits.sort{ it.date }
     }
 
     @Override
     List<Commit> searchBySha(String... sha) {
         Git git = new Git(repository)
-        def result = git.log().call().findAll{ it.name in sha }
-        def commits = []
-        result?.each{ c ->
-            def files = getChangedProductionFilesFromCommit(c)
-            commits += new Commit(hash:c.name, message:c.fullMessage.replaceAll(Util.NEW_LINE_REGEX," "), files:files,
-                              author:c.authorIdent.name, date:c.commitTime)
-        }
+        def logs = git.log().call().findAll{ it.name in sha }
+        def commits = extractCommitsFromLogs(logs)
         return commits.sort{ it.date }
     }
 
@@ -226,10 +224,11 @@ class JGitManager extends CommitManager {
     }
 
     def showAllChangesFromCommit(String sha){
-        println "Commit sha: $sha"
         RevCommit commit = extractCommit(sha)
+        println "Commit sha: $sha; Date:${new Date((commit.commitTime as long)*1000)}"
         if(commit.parentCount>0) {
             def diffs = getDiff(null, commit.tree, commit.parents.first().tree)
+            println "Total changed files: ${diffs.size()}"
             diffs.each{ showDiff(it) }
         }
         else{
@@ -242,4 +241,6 @@ class JGitManager extends CommitManager {
         }
     }
     /******************************************************************************************************************/
+
+    /* A FAZER LOGO: incluir busca por pullrequest, o que envolve a identificação de seus commits */
 }

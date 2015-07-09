@@ -1,17 +1,15 @@
 package search
-/**
- * Created by Thaís on 05/05/2015.
- */
+
 class Commit {
 
     String hash
     String message
     List files
     String author
-    String date
+    long date
 
     public String toString(){
-         "$hash*$date*$author*$message*${files.toListString()}"
+         "$hash*${new Date(date*1000)}*$author*$message*${files.toListString()}"
     }
 
 }
