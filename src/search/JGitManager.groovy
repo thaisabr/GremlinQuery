@@ -240,7 +240,5 @@ class JGitManager extends CommitManager {
             tw.release()
         }
     }
-    /******************************************************************************************************************/
 
-    /* A FAZER LOGO: incluir busca por pullrequest, o que envolve a identificação de seus commits */
 }
